@@ -1,20 +1,43 @@
 "use client"
-
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import React from "react";
+import {LogsIcon, LucideIcon, ServerIcon, Settings2Icon, UserPlus2} from 'lucide-react'
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
-    items: {
-        href: string
-        title: string
-    }[]
+    // items: {
+    //     href: string
+    //     title: string
+    //     icon: LucideIcon
+    // }[]
 }
+const items = [
+    {
+        title: "New Application",
+        icon: UserPlus2,
+        href: "/",
+    },
+    {
+        title: "View Instances",
+        icon: ServerIcon,
+        href: "/view-instances",
+    },
+    {
+        title: "Logs",
+        icon: LogsIcon,
+        href: "/internal-logs",
+    },
+    {
+        title: "Backend Control",
+        icon: Settings2Icon,
+        href: "/backend-control",
+    },
+]
 
-export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
+export function SidebarNav({ className, ...props }: SidebarNavProps) {
     const pathname = usePathname()
 
     return (
@@ -34,10 +57,13 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
                         pathname === item.href
                             ? "bg-muted hover:bg-muted"
                             : "hover:bg-muted/40",
-                        "justify-start"
+                        "justify-start",
+                        "font-light"
                     )}
                 >
+                    <item.icon className="mr-2 w-4 h-4" />
                     {item.title}
+
                 </Link>
             ))}
         </nav>
