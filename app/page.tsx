@@ -18,12 +18,28 @@ import { Input } from "@/components/ui/input"
 import {toast} from "@/components/ui/use-toast"
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {cn} from "@/lib/utils";
-import {CalendarIcon} from 'lucide-react'
+import {CalendarIcon, CheckIcon, ChevronsUpDownIcon} from 'lucide-react'
 import {Calendar} from "@/components/ui/calendar";
 import {addDays, format} from "date-fns";
 import {Checkbox} from "@/components/ui/checkbox";
+import {
+    Command,
+    CommandList,
+    CommandGroup,
+    CommandItem,
+    CommandEmpty
+} from "@/components/ui/command"
+import {useState} from "react";
+
+const issuers = [
+    { label: "London", value: "gbLON2ch" },
+    { label: "Edinburgh", value: "gbEDI2ch" },
+    { label: "Manchester", value: "gbMNC2ch" },
+] as const
 
 const FormSchema = z.object({
+    issuer: z.string()
+        .min(1, {message: "Must select a issuer/center"}),
     email: z.string()
         .min(1, {message: "Email is required"})
         .email("Not a valid email"),
@@ -64,6 +80,8 @@ export default function Page() {
         })
     }
 
+    const [issuerSelectionOpen, setIssuerSelectionOpen] = useState(false);
+
     return (
         <main>
             <div className="mb-10">
@@ -74,6 +92,73 @@ export default function Page() {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="w-2/3 space-y-6">
                     <div className="lg:grid md:flex grid-cols-2 gap-4 gap-y-10 flex-col">
+
+                        <div className="col-span-2">
+                            <FormField
+                                control={form.control}
+                                name="issuer"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>Select Centre</FormLabel>
+                                        <Popover open={issuerSelectionOpen} onOpenChange={setIssuerSelectionOpen}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        className={cn(
+                                                            "w-[200px] justify-between",
+                                                            !field.value && "text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        {field.value
+                                                            ? issuers.find(
+                                                                (issuer) => issuer.value === field.value
+                                                            )?.label
+                                                            : "Select center"}
+                                                        <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[200px] p-0">
+                                                <Command>
+                                                    <CommandList>
+                                                        <CommandEmpty>No framework found.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {issuers.map((issuer) => (
+                                                                <CommandItem
+                                                                    value={issuer.label}
+                                                                    key={issuer.value}
+                                                                    onSelect={() => {
+                                                                        form.setValue("issuer", issuer.value)
+                                                                        setIssuerSelectionOpen(false);
+                                                                    }}
+                                                                >
+                                                                    {issuer.label}
+                                                                    <CheckIcon
+                                                                        className={cn(
+                                                                            "ml-auto h-4 w-4",
+                                                                            issuer.value === field.value
+                                                                                ? "opacity-100"
+                                                                                : "opacity-0"
+                                                                        )}
+                                                                    />
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormDescription>
+                                            Make sure to match account provided with selected center
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
                         <FormField
                             control={form.control}
                             name="email"
@@ -210,29 +295,31 @@ export default function Page() {
                             />
                         </div>
 
-                        <FormField
-                            control={form.control}
-                            name="primeTimeWeekendAppointment"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                    <FormControl>
-                                        <Checkbox
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                            onClick={() => form.resetField('date')}
-                                        />
-                                    </FormControl>
-                                    <div className="space-y-1 leading-none">
-                                        <FormLabel>
-                                            Allow Prime Time Weekend Appointments
-                                        </FormLabel>
-                                        <FormDescription>
-                                            Prime time weekend appointments will be considered only if normal ones are unavailable{" "}
-                                        </FormDescription>
-                                    </div>
-                                </FormItem>
-                            )}
-                        />
+                        <div className="col-span-2">
+                            <FormField
+                                control={form.control}
+                                name="primeTimeWeekendAppointment"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                onClick={() => form.resetField('date')}
+                                            />
+                                        </FormControl>
+                                        <div className="space-y-1 leading-none">
+                                            <FormLabel>
+                                                Allow Prime Time Weekend Appointments
+                                            </FormLabel>
+                                            <FormDescription>
+                                                Prime time weekend appointments will be considered only if normal ones are unavailable{" "}
+                                            </FormDescription>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
 
                     </div>
 
