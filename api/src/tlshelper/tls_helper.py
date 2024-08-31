@@ -1,12 +1,13 @@
 import logging
 from typing import Literal, Dict, List
 
-from loguru import logger
+import structlog
 from playwright.async_api import BrowserContext
 
 from .utils import retry_wrapper, IncompleteApplicationError, extract_xsrf_token, handle_response_error, \
     appointment_table_request_gen
 
+logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 base_api_url = "https://visas-ch.tlscontact.com/services/customerservice/api/tls"
 
 
@@ -29,18 +30,20 @@ class TlsHelper:
         return self
 
     async def check_slots(self, context: BrowserContext, allow_pma=False, allow_pmwa=False):
-        logger.debug(f"Checking available slots for {self.fg_id}: {self.issuer}: pma={allow_pma}: pmwa={allow_pmwa}")
+        await logger.debug(
+            f"Checking available slots for {self.fg_id}: {self.issuer}: pma={allow_pma}: pmwa={allow_pmwa}"
+        )
         # todo: possible abstraction of client 'gb'
         api = f"{base_api_url}/appointment/gb/{self.issuer}/table"
-        xsrf_token = extract_xsrf_token(await context.cookies())
+        xsrf_token = await extract_xsrf_token(await context.cookies())
 
-        logger.debug(f"xsrf_token: {xsrf_token}")
+        await logger.debug(f"xsrf_token: {xsrf_token}")
         response = await appointment_table_request_gen(
             context, api, 'normal', self.fg_id, xsrf_token
         )
-        logger.debug(f"Response: code={response.status} text={response.text}")
+        await logger.debug(f"Response: code={response.status} text={response.text}")
         if response.status != 200:
-            handle_response_error(
+            await handle_response_error(
                 response, await context.cookies(), xsrf_token, "Failed to get normal appointment table"
             )
 
@@ -48,21 +51,21 @@ class TlsHelper:
         # {<date format: YYYY/MM/DD> {<hr HH:MM>: 0/1}}
         available_slots = {}
         data: Dict[str, Dict[str, int]] = await response.json()
-        logger.debug(f"Available slots for {self.fg_id} [raw]: {data}")
+        await logger.debug(f"Available slots for {self.fg_id} [raw]: {data}")
         for date, val in data.items():
             filtered_slots = {slot: avail for slot, avail in val.items() if avail == 1}
             if len(filtered_slots) > 0:
                 available_slots[date] = filtered_slots
-        logger.debug(f"Available normal slots for {self.fg_id}: {available_slots}")
+        await logger.debug(f"Available normal slots for {self.fg_id}: {available_slots}")
 
         if allow_pma:
-            logger.debug(f"Checking PMA slots for {self.fg_id}: {available_slots}")
+            await logger.debug(f"Checking PMA slots for {self.fg_id}: {available_slots}")
             response = await appointment_table_request_gen(
                 context, api, 'prime time', self.fg_id, xsrf_token
             )
-            logger.debug(f"Response: code={response.status} text={response.text}")
+            await logger.debug(f"Response: code={response.status} text={response.text}")
             if response.status != 200:
-                handle_response_error(
+                await handle_response_error(
                     response,
                     await context.cookies(),
                     xsrf_token,
@@ -71,7 +74,7 @@ class TlsHelper:
                 )
             else:
                 data = await response.json()
-                logger.debug(f"PMA slots received for {self.fg_id}: {data}")
+                await logger.debug(f"PMA slots received for {self.fg_id}: {data}")
                 for date, val in data.items():
                     if date not in available_slots:
                         available_slots[date] = {slot: avail for slot, avail in val.items() if avail == 1}
@@ -79,31 +82,32 @@ class TlsHelper:
                         available_slots[date].update({slot: avail for slot, avail in val.items() if avail == 1})
 
         elif allow_pmwa:
-            logger.debug(f"Checking PMWA slots for {self.fg_id}")
+            await logger.debug(f"Checking PMWA slots for {self.fg_id}")
             response = await appointment_table_request_gen(
                 context, api, 'prime time weekend', self.fg_id, xsrf_token
             )
-            logger.debug(f"Response: code={response.status} text={response.text}")
+            await logger.debug(f"Response: code={response.status} text={response.text}")
             if response.status != 200:
-                handle_response_error(
+                await handle_response_error(
                     response, await context.cookies(), xsrf_token,
                     "Failed to get prime time weekend appointment table", suppress=True
                 )
             else:
                 data = await response.json()
-                logger.debug(f"PMWA slots received for {self.fg_id}: {data}")
+                await logger.debug(f"PMWA slots received for {self.fg_id}: {data}")
                 for date, val in data.items():
                     if date not in available_slots:
                         if date not in available_slots:
                             available_slots[date] = {slot: avail for slot, avail in val.items() if avail == 1}
                         else:
                             available_slots[date].update({slot: avail for slot, avail in val.items() if avail == 1})
-        logger.debug(f"Final computed available slots for {self.fg_id}: {available_slots}")
+        await logger.debug(f"Final computed available slots for {self.fg_id}: {available_slots}")
         return available_slots
 
     @staticmethod
     async def get_fg_id(context: BrowserContext, issuer: Literal['gbLON2ch', 'gbEDI2ch', 'gbMNC2ch']) -> int:
         api = f"{base_api_url}/formgroup"
+        await logger.debug('Retrieving fg_id')
         response = await retry_wrapper(
             context.request.get,
             api,
@@ -112,9 +116,9 @@ class TlsHelper:
                 'issuer': issuer,
             },
         )
-
+        await logger.debug(f"GET Req {api} Response: code={response.status} text={response.text}")
         if not response.ok:
-            logger.error(f"Failed to retrieve fg_id. error: {response.text}")
+            await logger.error(f"Failed to retrieve fg_id. error: {response.text}")
             raise TimeoutError(
                 f"Failed to retrieve fg_id. | {response.status}: {response.text()}: {await context.cookies()}"
             )
@@ -134,6 +138,7 @@ class TlsHelper:
         #     }
         # ]
         data: List[Dict[str, str | bool]] = await response.json()
+        await logger.debug(f'Received data for fg_id = {data}')
         if len(data) == 0:
             logging.error('No form group found. aborting')
             raise IncompleteApplicationError("No form group found")
@@ -143,4 +148,7 @@ class TlsHelper:
 
         fg = data[0]
         fg_id = fg['fg_id']
+
+        await logger.debug(f'Retrieved fg_id {fg_id}')
+
         return int(fg_id)

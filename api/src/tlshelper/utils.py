@@ -2,29 +2,32 @@ import asyncio
 
 from typing import List, Optional, Literal, Awaitable, Any, Callable
 
-from loguru import logger
+import structlog
 from playwright.async_api import APIResponse, Cookie, BrowserContext
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 async def retry_wrapper(coro: Callable[..., Awaitable[Any]], *args, **kwargs) -> APIResponse:
     resp_status = retry = resp = 0
 
     while resp_status != 200 and retry < 5:
-        resp = await coro(*args, **kwargs)
+        resp: APIResponse = await coro(*args, **kwargs)
         retry = retry + 1
 
         if resp_status != 0:
             await asyncio.sleep(1)
 
-        logger.debug('')
+        resp_status = resp.status
+        await logger.debug(f"retry_wrapper, last response: {resp_status}")
 
     return resp
 
 
-def handle_response_error(
+async def handle_response_error(
         response: APIResponse, cookies: List[Cookie], xsrf_token: str, message: str, suppress=False
 ) -> None:
-    logger.error(f'{message}. Error: {response.status_text}')
+    await logger.error(f'{message}. Error: {response.status_text}')
     if not suppress:
         raise Exception(
             f"Failed to get available slots | "
@@ -39,7 +42,7 @@ async def appointment_table_request_gen(
         fg_id: int,
         xsrf_token: str
 ) -> APIResponse:
-    logger.debug("GET Request to retrieve available appointment slots")
+    await logger.debug("GET Request to retrieve available appointment slots")
     response = await retry_wrapper(
         context.request.get,
         api,
@@ -57,8 +60,8 @@ async def appointment_table_request_gen(
     return response
 
 
-def extract_xsrf_token(cookies: List[Cookie]) -> Optional[str]:
-    logger.debug("Extracting XSRF token")
+async def extract_xsrf_token(cookies: List[Cookie]) -> Optional[str]:
+    await logger.debug("Extracting XSRF token")
     return next((cookie.get('value') for cookie in cookies if cookie.get('name') == 'XSRF-TOKEN'), None)
 
 
