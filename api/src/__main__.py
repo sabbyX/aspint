@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
+from src.lifespan import lifespan
 from src.logger import configure_logger
 from src.routes import main_router
 
@@ -16,7 +17,8 @@ logger = structlog.stdlib.get_logger()
 
 app = FastAPI(
     title="AspInt API",
-    version="0.1"
+    version="0.1",
+    lifespan=lifespan
 )
 
 app.add_middleware(
