@@ -1,6 +1,10 @@
 services:
   backend:
     build: ./api/
+    develop:
+      watch:
+        - action: rebuild
+          path: ./api/src
     ports:
       - "8000:8000"
   db:
@@ -11,5 +15,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: user
       MONGO_INITDB_ROOT_PASSWORD: psw
+      MONGO_INITDB_DATABASE: aspint
     volumes:
       - ./db:/data/db:rw
+      - ./mongo-init/init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro

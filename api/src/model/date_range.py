@@ -1,8 +1,7 @@
-import datetime
-
+from datetime import timedelta
 from pydantic import BaseModel, Field
 
 
 class DateRange(BaseModel):
-    from_date: datetime = Field(alias='from')
-    to_date: datetime = Field(alias='to')
+    from_date: timedelta = Field(alias='from')
+    to_date: timedelta = Field(alias='to')

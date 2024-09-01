@@ -40,5 +40,9 @@ async def new_application(data: NewApplication):
             await logger.debug('Auth success')
             fg_id = await TlsHelper.get_fg_id(page.context, 'gbMNC2ch')
             async with TlsHelper(fg_id, 'gbMNC2ch') as tls:
-                slots = await tls.check_slots(page.context)
+                slots = await tls.check_slots(
+                    page.context,
+                    allow_pma=data.prime_time_appointment,
+                    allow_pmwa=data.prime_time_weekend_appointment
+                )
                 print(slots)

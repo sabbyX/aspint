@@ -15,7 +15,7 @@ logger = structlog.stdlib.get_logger()
 
 app = FastAPI(
     title="AspInt API",
-    version="0.1",
+    version="0.2",
     lifespan=lifespan
 )
 
