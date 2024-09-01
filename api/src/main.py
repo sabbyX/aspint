@@ -1,8 +1,6 @@
-import sys
-
 import structlog
-import uvicorn
-from fastapi import FastAPI, Request, Response, status
+
+from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
@@ -36,19 +34,6 @@ app.add_middleware(
 
 app.include_router(main_router)
 
-@app.middleware("http")
-async def logging_middleware(request: Request, call_next) -> Response:
-    req_id = request.headers.get("request-id")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        request_id=req_id,
-    )
-
-    response: Response = await call_next(request)
-
-    return response
-
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -56,7 +41,3 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     await logger.error(f"{request}: {exc_str}")
     content = {'status_code': 10422, 'message': exc_str, 'data': None}
     return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
-
-
-if __name__ == '__main__':
-    uvicorn.run(app, host="localhost", port=8000, log_level='debug')

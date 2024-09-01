@@ -1,0 +1,15 @@
+services:
+  backend:
+    build: ./api/
+    ports:
+      - "8000:8000"
+  db:
+    image: mongo
+    restart: always
+    ports:
+      - "8001:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: psw
+    volumes:
+      - ./db:/data/db:rw

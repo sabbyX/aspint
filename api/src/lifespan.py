@@ -15,7 +15,7 @@ logger = structlog.stdlib.get_logger()
 async def lifespan(app: FastAPI) -> AsyncGenerator[FastAPI, None]:
     await logger.debug('Lifespan startup initiated')
     try:
-        client = AsyncIOMotorClient("mongodb://user:psw@localhost:27017/")
+        client = AsyncIOMotorClient("mongodb://user:psw@db:27017/")
     except Exception as e:
         await logger.exception("Failed to connect to MongoDB. Critical")
     else:
