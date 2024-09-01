@@ -19,3 +19,7 @@ services:
     volumes:
       - ./db:/data/db:rw
       - ./mongo-init/init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
+  redis:
+    image: redis/redis-stack
+    restart: always
