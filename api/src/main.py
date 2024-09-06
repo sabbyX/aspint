@@ -16,7 +16,8 @@ logger = structlog.stdlib.get_logger()
 app = FastAPI(
     title="AspInt API",
     version="0.2",
-    lifespan=lifespan
+    lifespan=lifespan,
+    debug=True,
 )
 
 app.add_middleware(
@@ -35,9 +36,9 @@ app.add_middleware(
 app.include_router(main_router)
 
 
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+@app.exception_handler(Exception)
+async def validation_exception_handler(request: Request, exc: Exception):
     exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
     await logger.error(f"{request}: {exc_str}")
-    content = {'status_code': 10422, 'message': exc_str, 'data': None}
-    return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+    content = {'status_code': 500, 'message': exc_str, 'data': None}
+    return JSONResponse(content=content, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

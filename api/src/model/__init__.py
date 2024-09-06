@@ -1,5 +1,6 @@
 from .new_application import NewApplication
 from .config import Config
-from .user import User
+from .applications import Applications
+from .appointment_table import AppointmentTable, AvailableSlotTable
 
-__beanie_models__ = [User, Config]
+__beanie_models__ = [Applications, Config, AppointmentTable]

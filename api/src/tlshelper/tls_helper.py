@@ -3,9 +3,11 @@ from typing import Literal, Dict, List
 
 import structlog
 from playwright.async_api import BrowserContext
+from httpx import AsyncClient
 
 from .utils import retry_wrapper, IncompleteApplicationError, extract_xsrf_token, handle_response_error, \
-    appointment_table_request_gen
+    appointment_table_request_gen, extract_cookie_value, filter_slot
+from ..model.appointment_table import Slot
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 base_api_url = "https://visas-ch.tlscontact.com/services/customerservice/api/tls"
@@ -27,6 +29,7 @@ class TlsHelper:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await logger.exception(exc_type, exc_val, exc_tb)
         return self
 
     async def check_slots(self, context: BrowserContext, allow_pma=False, allow_pmwa=False):
@@ -49,11 +52,11 @@ class TlsHelper:
 
         # expected response
         # {<date format: YYYY/MM/DD> {<hr HH:MM>: 0/1}}
-        available_slots = {}
+        available_slots: dict[str, list[dict[str, str]]] = {}
         data: Dict[str, Dict[str, int]] = await response.json()
         await logger.debug(f"Available slots for {self.fg_id} [raw]: {data}")
         for date, val in data.items():
-            filtered_slots = {slot: avail for slot, avail in val.items() if avail == 1}
+            filtered_slots = filter_slot(val, 'normal')
             if len(filtered_slots) > 0:
                 available_slots[date] = filtered_slots
         await logger.debug(f"Available normal slots for {self.fg_id}: {available_slots}")
@@ -77,9 +80,9 @@ class TlsHelper:
                 await logger.debug(f"PMA slots received for {self.fg_id}: {data}")
                 for date, val in data.items():
                     if date not in available_slots:
-                        available_slots[date] = {slot: avail for slot, avail in val.items() if avail == 1}
+                        available_slots[date] = filter_slot(val, 'pma')
                     else:
-                        available_slots[date].update({slot: avail for slot, avail in val.items() if avail == 1})
+                        available_slots[date].extend(filter_slot(val, 'pma'))
 
         elif allow_pmwa:
             await logger.debug(f"Checking PMWA slots for {self.fg_id}")
@@ -97,12 +100,38 @@ class TlsHelper:
                 await logger.debug(f"PMWA slots received for {self.fg_id}: {data}")
                 for date, val in data.items():
                     if date not in available_slots:
-                        if date not in available_slots:
-                            available_slots[date] = {slot: avail for slot, avail in val.items() if avail == 1}
-                        else:
-                            available_slots[date].update({slot: avail for slot, avail in val.items() if avail == 1})
+                        available_slots[date] = filter_slot(val, 'pmwa')
+                    else:
+                        available_slots[date].extend(filter_slot(val, 'pmwa'))
+
         await logger.debug(f"Final computed available slots for {self.fg_id}: {available_slots}")
         return available_slots
+
+    async def book(self, context: BrowserContext, selected_slot: str, recaptcha_token: str):  # todo: update
+        try:
+            api = \
+                (f"https://visas-ch.tlscontact.com/services/customerservice/api/tls/appointment/book"
+                 f"?client=ch&issuer={self.issuer}&formGroupId={self.fg_id}&timeslot={selected_slot}"
+                 f"&appointmentType=normal&accountType=INDI&lang=en-us")
+            xsrf_token = await extract_xsrf_token(await context.cookies())
+            async with AsyncClient() as httpx_client:
+                resp = await httpx_client.post(
+                    api,
+                    cookies={
+                        'JSESSIONID': await extract_cookie_value(await context.cookies(), 'JSESSIONID'),
+                        'XSRF-TOKEN': xsrf_token
+                    },
+                    headers={
+                        'X-XSRF-TOKEN': xsrf_token,
+                        'recaptcha-token': recaptcha_token
+                    }
+                )
+
+        except Exception as e:
+            await logger.exception('e')
+            raise e
+        print(resp, resp.status_code, resp.text)
+        return resp
 
     @staticmethod
     async def get_fg_id(context: BrowserContext, issuer: Literal['gbLON2ch', 'gbEDI2ch', 'gbMNC2ch']) -> int:

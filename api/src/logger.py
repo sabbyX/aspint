@@ -47,7 +47,6 @@ def _configure_default_logging_by_custom(shared_processors, logs_render):
     formatter = structlog.stdlib.ProcessorFormatter(
         foreign_pre_chain=shared_processors,
         processors=[
-            _extract_from_record,
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
             logs_render,
         ],
@@ -57,11 +56,3 @@ def _configure_default_logging_by_custom(shared_processors, logs_render):
     root_uvicorn_logger = logging.getLogger()
     root_uvicorn_logger.addHandler(handler)
     root_uvicorn_logger.setLevel(logging.DEBUG)
-
-
-def _extract_from_record(_, __, event_dict):
-    # Extract thread and process names and add them to the event dict.
-    record = event_dict["_record"]
-    event_dict["thread_name"] = record.threadName
-    event_dict["process_name"] = record.processName
-    return event_dict

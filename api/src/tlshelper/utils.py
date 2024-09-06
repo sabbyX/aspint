@@ -5,6 +5,8 @@ from typing import List, Optional, Literal, Awaitable, Any, Callable
 import structlog
 from playwright.async_api import APIResponse, Cookie, BrowserContext
 
+from src.model.appointment_table import Slot
+
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
@@ -65,6 +67,15 @@ async def extract_xsrf_token(cookies: List[Cookie]) -> Optional[str]:
     return next((cookie.get('value') for cookie in cookies if cookie.get('name') == 'XSRF-TOKEN'), None)
 
 
+async def extract_cookie_value(cookies: List[Cookie], cookie: str) -> Optional[str]:
+    await logger.debug("Extracting cookie value", cookie=cookie)
+    return next((j.get('value')) for j in cookies if j.get('name') == cookie)
+
+
 class IncompleteApplicationError(Exception):
     def __init__(self, message: str) -> None:
         self.message = message
+
+
+def filter_slot(s: dict[str, int], a_type: Literal['normal', 'pmwa', 'pma']) -> list[dict[str, str]]:
+    return [{'td': td, 'type': a_type} for td, avail in s.items() if avail == 1]
