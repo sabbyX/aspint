@@ -45,12 +45,14 @@ const FormSchema = z.object({
         .email("Not a valid email"),
     password: z.string()
         .min(1, {message: "Password is required"}),
-    date: z.object({
-        from: z.date(),
-        to: z.date(),
-    }).refine(
-        (data) => data.from > addDays(new Date(), -1),
-        "Start date must be in the future"
+    dateRange: z.optional(
+        z.object({
+            from: z.date(),
+            to: z.date(),
+        }).refine(
+            (data) => data.from > addDays(new Date(), -1),
+            "Start date must be in the future"
+        )
     ),
     preferredSlotRange: z.boolean().default(false),
     primeTimeAppointment: z.boolean().default(false),
@@ -195,7 +197,7 @@ export default function Page() {
 
                         <FormField
                             control={form.control}
-                            name="date"
+                            name="dateRange"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                     <FormLabel>Preferred Slot Range</FormLabel>
@@ -254,7 +256,7 @@ export default function Page() {
                                         <Checkbox
                                             checked={field.value}
                                             onCheckedChange={field.onChange}
-                                            onClick={() => form.resetField('date')}
+                                            onClick={() => form.resetField('dateRange')}
                                         />
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
@@ -279,7 +281,6 @@ export default function Page() {
                                             <Checkbox
                                                 checked={field.value}
                                                 onCheckedChange={field.onChange}
-                                                onClick={() => form.resetField('date')}
                                             />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
@@ -305,7 +306,6 @@ export default function Page() {
                                             <Checkbox
                                                 checked={field.value}
                                                 onCheckedChange={field.onChange}
-                                                onClick={() => form.resetField('date')}
                                             />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">

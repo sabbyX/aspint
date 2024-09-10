@@ -27,73 +27,81 @@ router = APIRouter(
 
 
 async def __bg_task_new_app(data: NewApplication, deps_inj_cache: Redis):
-    await logger.debug('executing bg tasks for new application', data=data)
-    assert data.slot_check_only
+    try:
+        await logger.debug('executing bg tasks for new application', data=data)
+        assert data.slot_check_only
 
-    async with (async_playwright() as playwright):
-        browser = await playwright.firefox.launch()
-        page = await browser.new_page()
-        await page.goto(f'https://visas-ch.tlscontact.com/visa/gb/{data.issuer}/home')
-        await logger.debug('Home Page', email=data.email)
-        await page.goto('https://visas-ch.tlscontact.com/oauth2/authorization/oidc')
-        await page.get_by_label("Email").fill(data.email)
-        await page.get_by_label("Password").fill(data.password)
-        await page.get_by_role('button', name='Log in').click()
-        await logger.debug('Auth in progress', email=data.email)
-        resp = await retry_wrapper(
-            page.context.request.get,
-            'https://visas-ch.tlscontact.com/api/account'
-        )
-        if resp.status != 200:
-            raise Exception(f"Failed API Request: {resp.text}")
-        else:
-            await logger.debug('Auth success', email=data.email)
-            fg_id = await TlsHelper.get_fg_id(page.context, data.issuer)
-            async with TlsHelper(fg_id, data.issuer) as tls:
-                retry = 0  # todo: make it custom
-                while True:
-                    try:
-                        await logger.debug('checking slot')
-                        sleep_interval = await get_app_config(deps_inj_cache)
-                        slots2 = await tls.check_slots(
-                            page.context,
-                            allow_pma=True if data.slot_check_only else data.prime_time_appointment,
-                            allow_pmwa=True if data.slot_check_only else data.prime_time_weekend_appointment,
-                        )
+        async with (async_playwright() as playwright):
+            browser = await playwright.firefox.launch()
+            page = await browser.new_page()
+            await page.goto(f'https://visas-ch.tlscontact.com/visa/gb/{data.issuer}/home')
+            await logger.debug('Home Page', email=data.email)
+            await page.goto('https://visas-ch.tlscontact.com/oauth2/authorization/oidc')
+            await page.get_by_label("Email").fill(data.email)
+            await page.get_by_label("Password").fill(data.password)
+            await page.get_by_role('button', name='Log in').click()
+            await logger.debug('Auth in progress', email=data.email)
+            resp = await retry_wrapper(
+                page.context.request.get,
+                'https://visas-ch.tlscontact.com/api/account'
+            )
+            if resp.status != 200:
+                raise Exception(f"Failed API Request: {resp.text}")
+            else:
+                await logger.debug('Auth success', email=data.email)
+                fg_id = await TlsHelper.get_fg_id(page.context, data.issuer)
+                async with TlsHelper(fg_id, data.issuer) as tls:
+                    retry = 0  # todo: make it custom
+                    while True:
+                        try:
+                            await logger.debug('checking slot')
+                            sleep_interval = await get_app_config(deps_inj_cache)
+                            slots2 = await tls.check_slots(
+                                page.context,
+                                allow_pma=True if data.slot_check_only else data.prime_time_appointment,
+                                allow_pmwa=True if data.slot_check_only else data.prime_time_weekend_appointment,
+                            )
 
-                        if len(slots2) > 0 and not data.slot_check_only:
-                            break
-                        elif len(slots2) < 1:
-                            logger.debug("No slot found")
-                            await asyncio.sleep(sleep_interval.refresh_interval)
-                            continue
+                            if len(slots2) > 0 and not data.slot_check_only:
+                                break
+                            elif len(slots2) < 1:
+                                logger.debug("No slot found")
+                                await asyncio.sleep(sleep_interval.refresh_interval)
+                                continue
 
-                        await logger.debug("slot_check_only - starting process to update database")
-                        if data.slot_check_only:
-                            # feed = AvailableSlotTable.model_validate({'slots_available': slots2})
-                            doc = AppointmentTable(issuer="ch", center=data.issuer, slots_available=slots2)
-                            res: list[AppointmentTable] = await AppointmentTable.find(
-                                AppointmentTable.issuer == "ch",
-                                AppointmentTable.center == data.issuer,
-                            ).sort(
-                                [
-                                    (AppointmentTable.id, pymongo.DESCENDING)
-                                ]
-                            ).to_list()
-                            await logger.debug("found slots at database", count=len(res), db_found=res)
-                            if len(res) > 1:
-                                await res[1].delete()
-                            await doc.save()
-                            await logger.debug("saved updated slot info, sleeping")
-                            await asyncio.sleep(sleep_interval.refresh_interval)
-                    except Exception as e:
-                        logger.exception("bg task failed with ")
-                        if retry > 3:  # make retry expiry
-                            raise e
-                        else:
-                            await logger.awarning("bg task failed with exception, restarting bg_task", retry=retry+1)
-
+                            await logger.debug("slot_check_only - starting process to update database")
+                            if data.slot_check_only:
+                                # feed = AvailableSlotTable.model_validate({'slots_available': slots2})
+                                doc = AppointmentTable(issuer="ch", center=data.issuer, slots_available=slots2)
+                                res: list[AppointmentTable] = await AppointmentTable.find(
+                                    AppointmentTable.issuer == "ch",
+                                    AppointmentTable.center == data.issuer,
+                                ).sort(
+                                    [
+                                        (AppointmentTable.id, pymongo.DESCENDING)
+                                    ]
+                                ).to_list()
+                                await logger.debug("found slots at database", count=len(res), db_found=res)
+                                if len(res) > 1:
+                                    await res[1].delete()
+                                await doc.save()
+                                await logger.debug("saved updated slot info, sleeping")
+                                await asyncio.sleep(sleep_interval.refresh_interval)
+                        except Exception as e:
+                            await logger.exception("bg task failed with ")
+                            if retry > 3:  # make retry expiry
+                                raise e
+                            else:
+                                retry += 1
+                                await logger.warning("bg task failed with exception, restarting bg_task", retry=retry)
                 return
+    except Exception as e:
+        await logger.exception("failed to init task")
+        if retry > 3:
+            raise e
+        else:
+            retry += 1
+            await logger.warning("bg task failed with exception, restarting bg_task", retry=retry)
 
                 # await logger.debug('Selecting slot')
                 # feed = AvailableSlotTable.model_validate({'slots_available': slots2})
