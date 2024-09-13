@@ -15,7 +15,6 @@ async def slot_listener_data():
     pass
 
 
-
 @router.post("/slotUpdate/{country}/{center}")
 async def slot_update(country: str, center: str, data: TlsAdvListerSlotUpdate):
     await logger.debug("Received data from tls advanced listener")
@@ -29,17 +28,21 @@ async def slot_update(country: str, center: str, data: TlsAdvListerSlotUpdate):
 
     await logger.debug(f"Prime Time slots: {len(data.prime_time)}")
     for date, val in data.prime_time.items():
-        if date not in feed:
-            feed[date] = filter_slot(val, 'pma')
-        else:
-            feed[date].extend(filter_slot(val, 'pma'))
+        filtered_slots = filter_slot(val, 'pma')
+        if len(filtered_slots) > 0:
+            if date not in feed:
+                feed[date] = filter_slot(val, 'pma')
+            else:
+                feed[date].extend(filter_slot(val, 'pma'))
 
     await logger.debug(f"Prime Time Weekend slots: {len(data.prime_time_weekend)}")
     for date, val in data.prime_time_weekend.items():
-        if date not in feed:
-            feed[date] = filter_slot(val, 'pmwa')
-        else:
-            feed[date].extend(filter_slot(val, 'pmwa'))
+        filtered_slots = filter_slot(val, 'pmwa')
+        if len(filtered_slots) > 0:
+            if date not in feed:
+                feed[date] = filter_slot(val, 'pmwa')
+            else:
+                feed[date].extend(filter_slot(val, 'pmwa'))
 
     if len(feed) > 0:
         doc = AppointmentTable(issuer=country, center=center, slots_available=feed)

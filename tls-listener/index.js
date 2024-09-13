@@ -1,6 +1,7 @@
 import './intrument.js';
 
 import { connect } from 'puppeteer-real-browser'
+import { newInjectedPage } from 'fingerprint-injector';
 import axios from "axios";
 import {captureException} from "@sentry/node";
 
@@ -21,7 +22,11 @@ const auth = {
     }
 }
 
-const waitTillHTMLRendered = async (page, timeout = 30000) => {
+function getRndInteger(min, max) {
+    return Math.floor(Math.random() * (max - min) ) + min;
+}
+
+const waitTillHTMLRendered = async (page, c, timeout = 30000) => {
     const checkDurationMsecs = 1000;
     const maxChecks = timeout / checkDurationMsecs;
     let lastHTMLSize = 0;
@@ -39,7 +44,7 @@ const waitTillHTMLRendered = async (page, timeout = 30000) => {
             countStableSizeIterations = 0; //reset the counter
 
         if(countStableSizeIterations >= minStableSizeIterations) {
-            console.log("Page rendered fully..");
+            console.log(c+ ": Page rendered fully..");
             break;
         }
 
@@ -91,6 +96,7 @@ const create_browser_task = async (page, c, u, p, f) => {
     await page.on('requestfinished', async (request) => {
         if (!request.url().endsWith('Stage=appointment')){ return }
         const response = await request.response();
+        console.log(c+ ": "+ response.url() + " " + request.redirectChain().length + " " + await response.status(), await response.statusText())
         try {
             if (request.redirectChain().length === 0 && response.ok()) {
                 try {
@@ -112,14 +118,19 @@ const create_browser_task = async (page, c, u, p, f) => {
     console.log(c+ ": loading appoint page")
     await page.goto(`https://visas-be.tlscontact.com/appointment/gb/${c}/${f}`)
     console.log(c+ ": appoint page loaded, proceeding to extract...");
+    var reloadCount = 0;
+    var maxRC = getRndInteger(4, 8);
     while (true) {
-        await waitTillHTMLRendered(page);
+        await page.waitForResponse(async (response) => {
+            return response.url().includes("prime")
+        })
+        await waitTillHTMLRendered(page, c);
         if (requests.size < 3) {
-            console.log(c+": Expected 3 tables, got " + requests.size + " data=" + requests + ", ignoring event");
+            console.log(c+": Expected 3 tables, got " + requests.size + " data=" + Array.from(requests).toString() + ", ignoring event");
         } else {
             console.log(c+": sending slot data to internal api...")
             const status = await axios.post(
-                `http://localhost:8000/internal/slotUpdate/be/${c}`, {
+                `http://backend:8000/internal/slotUpdate/be/${c}`, {
                     normal: requests.get('normal'),
                     prime_time: requests.get('primetime'),
                     prime_time_weekend: requests.get('primetime weekend'),
@@ -137,9 +148,14 @@ const create_browser_task = async (page, c, u, p, f) => {
             }
         }
         console.log(c + " sleeping...")
-        await sleep(1000 * 60 *2);
+        await sleep(1000 * 60 * 4);
         requests.clear();
         await page.reload()
+        reloadCount++;
+        console.log(c+': reload count: ' + reloadCount);
+        if (reloadCount >= maxRC) {
+            throw "reload";
+        }
     }
 }
 
@@ -148,13 +164,23 @@ async function b_wrapper(browser, c, u, p, fid) {
     // todo: redis
     while (retry <= 3) {
         try {
-            var bc = await browser.createBrowserContext({})
-            var page = await bc.newPage()
+            var bc = await browser.createBrowserContext()
+            //var page = await bc.newPage()
+            var page = await newInjectedPage(bc, {
+                fingerprintOptions: {
+                    devices: ['desktop'],
+                    operatingSystems: ['windows']
+                }
+            })
             await create_browser_task(page, c, u, p, fid);
         } catch (e) {
-            console.error(e);
-            captureException(e)
-            bc.close()
+            if (e == 'reload') {
+                console.log(c+": Scheduled reload in progress...");
+            } else {
+                console.error(e);
+                captureException(e)
+                bc.close()
+            }
             // retry++; failsafe
         }
     }
@@ -171,7 +197,6 @@ async function bg_task_tls_adv() {
             "--disable-renderer-backgrounding"
         ],
         customConfig: {},
-        fingerprint: false,
         turnstile: true,
         connectOption: {},
         disableXvfb: false,

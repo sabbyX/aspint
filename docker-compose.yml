@@ -44,3 +44,11 @@ services:
   redis:
     image: redis/redis-stack
     restart: always
+
+  tls-adv-listener:
+    build:
+      context: tls-listener/
+      dockerfile: Dockerfile
+    shm_size: 2gb
+    depends_on:
+      - backend

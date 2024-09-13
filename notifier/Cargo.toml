@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 
 tokio = { version = "1.40.0", features = ["macros", "rt", "rt-multi-thread"] }
-teloxide = { version =  "0.13.0", features = ["macros"] }
+teloxide = { version =  "0.12.2", features = ["macros"] }
 log = { version = "0.4.22", features = [] }
 env_logger = "0.11.5"
 async_once = "0.2.6"
@@ -17,3 +17,4 @@ mongodb = "3.1.0"
 serde = "1.0.210"
 thiserror = "1.0.63"
 futures = "0.3.30"
+base64 = "0.22.1"
