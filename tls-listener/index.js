@@ -53,12 +53,17 @@ const create_browser_task = async (page, c, u, p, f) => {
         width: 1920,
         height: 1080
     });
-
+    console.log(c + ' loading home page');
     await page.goto(
         `https://visas-be.tlscontact.com/visa/gb/${c}/home`,
         {waitUntil: 'networkidle0'}
     );
-    console.log("Home Page")
+
+    const session = await page.target().createCDPSession();
+    const {windowId} = await session.send('Browser.getWindowForTarget');
+    await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
+
+    console.log(c + ": Home Page")
     await page.waitForSelector("#tls-navbar > div > div.tls-navbar--links.-closed.height52 > div.tls-log > div > a")
     await page.locator("#tls-navbar > div > div.tls-navbar--links.-closed.height52 > div.tls-log > div > a").click()
 
@@ -67,18 +72,19 @@ const create_browser_task = async (page, c, u, p, f) => {
         // cf does a few hops, and we want to make sure we are in the requested page
         const url = "https://auth.visas-be.tlscontact.com/auth/resources/17dei/login/web/img/favicon.ico"
         if (await response.url() === url && await response.status() === 200) {
-            console.log("cf hopping over. init login procedure")
+            console.log(c+": cf hopping over. init login procedure")
             await sleep(2000)
             return true;
         }
     });
-    console.log("Login Page")
+    console.log(c+": Login Page")
     await page.focus("#username");
     await page.keyboard.type(u)
     await page.focus("#password");
     await page.keyboard.type(p)
     await page.locator("#kc-login").click()
-    await page.waitForNetworkIdle({waitUntil: 'networkidle0'})
+    await page.waitForNavigation({waitUntil: 'domcontentloaded'});
+    console.log(c+": Finished login procedure..")
 
     var requests = new Map()
     await page.setRequestInterception(true);
@@ -89,31 +95,31 @@ const create_browser_task = async (page, c, u, p, f) => {
             if (request.redirectChain().length === 0 && response.ok()) {
                 try {
                     const appType = new URL(response.url()).searchParams.get("appointmentType").replace(' ', '');
-                    console.log("set key: " + appType, " set value: ", await response.text())
+                    console.log(c+": Extracted " + appType)
                     requests.set(appType, await response.json())
                 } catch (e) {
-                    console.log("non-JSON found, expected appointment table: " + await response.text() +  " "+ e.toString());
+                    console.log(c+": non-JSON found, expected appointment table: " + await response.text() +  " "+ e.toString());
                     captureException(e);
                 }
             }
         }catch (err) { console.log(err + '\n\n' + request.toString()); captureException(err)}
-        console.log("recorded: " + requests.toString())
     });
 
     await page.on('request', request => {
         request.continue();
     });
 
+    console.log(c+ ": loading appoint page")
     await page.goto(`https://visas-be.tlscontact.com/appointment/gb/${c}/${f}`)
-
+    console.log(c+ ": appoint page loaded, proceeding to extract...");
     while (true) {
         await waitTillHTMLRendered(page);
         if (requests.size < 3) {
-            console.log("Expected 3 tables, got " + requests.size + " data=" + requests + ", ignoring event");
+            console.log(c+": Expected 3 tables, got " + requests.size + " data=" + requests + ", ignoring event");
         } else {
-            console.log("sending slot data to internal api...")
+            console.log(c+": sending slot data to internal api...")
             const status = await axios.post(
-                `http://localhost:8000/internal/slotUpdate/be/${c}/`, {
+                `http://localhost:8000/internal/slotUpdate/be/${c}`, {
                     normal: requests.get('normal'),
                     prime_time: requests.get('primetime'),
                     prime_time_weekend: requests.get('primetime weekend'),
@@ -125,9 +131,9 @@ const create_browser_task = async (page, c, u, p, f) => {
                 }
                 );
             if (status.status !== 200) {
-                console.warn("internal api returned unexpected status.")
+                console.warn(c + ": internal api returned unexpected status.")
             } else {
-                console.log("successfully posted updated slot data to internal api")
+                console.log(c+": successfully posted updated slot data to internal api")
             }
         }
         console.log(c + " sleeping...")
@@ -142,14 +148,14 @@ async function b_wrapper(browser, c, u, p, fid) {
     // todo: redis
     while (retry <= 3) {
         try {
-            var bc = await browser.createBrowserContext()
+            var bc = await browser.createBrowserContext({})
             var page = await bc.newPage()
             await create_browser_task(page, c, u, p, fid);
         } catch (e) {
             console.error(e);
             captureException(e)
-            retry++;
             bc.close()
+            // retry++; failsafe
         }
     }
 }
@@ -158,7 +164,12 @@ async function bg_task_tls_adv() {
 
     const { browser } = await connect({
         headless: false,
-        args: ["--start-maximized"],
+        args: [
+            "--start-maximized",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-background-timer-throttling",
+            "--disable-renderer-backgrounding"
+        ],
         customConfig: {},
         fingerprint: false,
         turnstile: true,

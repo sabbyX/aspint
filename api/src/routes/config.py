@@ -31,6 +31,7 @@ async def get_config(
 @router.post('/set', status_code=status.HTTP_201_CREATED)
 async def set_config(data: Config, dep_inj_cache: Redis = Depends(get_cache)):
     await logger.debug("SET Request for /config/set", new_config=data)
+    data.id = None
     await Config.insert(data)
     await dep_inj_cache.json().set('app_config', Path.root_path(), data.model_dump(exclude={'id'}))
-    return responses.JSONResponse({'config': data})
+    return responses.JSONResponse({'config': data.model_dump(exclude={'id'})})

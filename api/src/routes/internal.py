@@ -10,6 +10,12 @@ logger = structlog.stdlib.get_logger()
 router = APIRouter(prefix="/internal")
 
 
+@router.get('/getSlotListenerData')
+async def slot_listener_data():
+    pass
+
+
+
 @router.post("/slotUpdate/{country}/{center}")
 async def slot_update(country: str, center: str, data: TlsAdvListerSlotUpdate):
     await logger.debug("Received data from tls advanced listener")
@@ -36,20 +42,19 @@ async def slot_update(country: str, center: str, data: TlsAdvListerSlotUpdate):
             feed[date].extend(filter_slot(val, 'pmwa'))
 
     if len(feed) > 0:
-        if data.slot_check_only:
-            doc = AppointmentTable(issuer=country, center=center, slots_available=feed)
-            res: list[AppointmentTable] = await AppointmentTable.find(
-                AppointmentTable.issuer == country,
-                AppointmentTable.center == center,
-            ).sort(
-                [
-                    (AppointmentTable.id, pymongo.DESCENDING)
-                ]
-            ).to_list()
-            await logger.debug("found slots at database", count=len(res), db_found=res)
-            if len(res) > 1:
-                await res[1].delete()
-            await doc.save()
-            await logger.debug("saved slot info")
+        doc = AppointmentTable(issuer=country, center=center, slots_available=feed)
+        res: list[AppointmentTable] = await AppointmentTable.find(
+            AppointmentTable.issuer == country,
+            AppointmentTable.center == center,
+        ).sort(
+            [
+                (AppointmentTable.id, pymongo.DESCENDING)
+            ]
+        ).to_list()
+        await logger.debug("found slots at database", count=len(res), db_found=res)
+        if len(res) > 1:
+            await res[1].delete()
+        await doc.save()
+        await logger.debug("saved slot info")
 
     return responses.Response(status_code=status.HTTP_200_OK)
