@@ -1,13 +1,33 @@
+use futures::TryStreamExt;
 use log::debug;
 use mongodb::bson::doc;
 use teloxide::{prelude::*, types::{Message, ParseMode}, Bot};
 
-use crate::{constants::{CLIENT, NOTIFIER_SUB_COL}, error::Error, model::NotifierSubCol, utils::{GBSupportedCenters, SupportedCountries}};
+use crate::{constants::{CLIENT, NOTIFIER_SUB_COL}, error::Error, model::{AppointmentTable, NotifierSubCol}, utils::{GBSupportedCenters, SupportedCountries}};
 
 pub async fn new_subscribe_cmd_handler(msg: Message, bot: Bot) -> Result<(), Error> {
     bot.send_message(msg.chat.id, "Choose country:")
         .reply_markup(SupportedCountries::create_kb())
         .await?;
+    Ok(())
+}
+
+async fn send_latest_table(bot: Bot, msg: Message, center: GBSupportedCenters, country: SupportedCountries) -> Result<(), Error> {
+    debug!("sending latest table");
+    let db = CLIENT.get().await
+        .database("aspint")
+        .collection::<AppointmentTable>("appointment_table");
+    debug!("fetching current table");
+    let curr_table = db.find(doc! { "center": center.to_callback_data(&country.to_callback_data()) })
+        .sort(doc! { "_id": -1 })
+        .await?
+        .try_collect::<Vec<_>>()
+        .await?;
+    if let Some(table) = curr_table.first() {
+        debug!("found latest table");
+        let t_text = table.to_text(true);
+        bot.send_message(msg.chat.id, t_text).parse_mode(ParseMode::Html).await?;
+    }
     Ok(())
 }
 
@@ -42,9 +62,9 @@ pub async fn subscribe_callback_handler(bot: Bot, cq: CallbackQuery) -> Result<(
                             msg.chat.id,
                             msg.id,
                             format!(
-                                "You're already subscribed to <b>{}</b> center of <b>{}</b>", 
-                                center.to_text(),
+                                "You're already subscribed to <b>{}</b - <b>{}</b>", 
                                 country.to_text(),
+                                center.to_text(),
                             )
                         )
                             .parse_mode(ParseMode::Html)
@@ -57,10 +77,11 @@ pub async fn subscribe_callback_handler(bot: Bot, cq: CallbackQuery) -> Result<(
                         bot.edit_message_text(
                             msg.chat.id, 
                             msg.id,
-                            format!("Subscribed to <b>{}</b> - <b>{}</b>", center.to_text(), country.to_text())
+                            format!("Subscribed to <b>{}</b> - <b>{}</b>", country.to_text(), center.to_text())
                         )
                             .parse_mode(ParseMode::Html)
                             .await?;
+                        send_latest_table(bot, msg, center, country).await?;
                     }
                 } else {
                     debug!("User doesnot have entry in db, creating new one.");
@@ -75,10 +96,17 @@ pub async fn subscribe_callback_handler(bot: Bot, cq: CallbackQuery) -> Result<(
                     bot.edit_message_text(
                         msg.chat.id, 
                         msg.id,
-                        format!("Subscribed to <b>{}</b> - <b>{}</b>", center.to_text(), country.to_text())
+                        format!("Subscribed to <b>{}</b> - <b>{}</b>", country.to_text(), center.to_text())
                     )
                         .parse_mode(ParseMode::Html)
                         .await?;
+                    send_latest_table(bot, msg, center, country).await?;
+                }
+            }
+        } else if data.starts_with("latest_") {
+            if let (Some(center), Some(country)) = GBSupportedCenters::extract_cbd(&data) {
+                if let Some(msg) = cq.message {
+                    send_latest_table(bot, msg, center, country).await?
                 }
             }
         } else { debug!("Unknown callback data. Ignoring"); }

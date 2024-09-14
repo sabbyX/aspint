@@ -156,6 +156,8 @@ const create_browser_task = async (page, c, u, p, f) => {
         if (reloadCount >= maxRC) {
             throw "reload";
         }
+        const {windowId} = await session.send('Browser.getWindowForTarget');
+        await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
     }
 }
 

@@ -3,9 +3,9 @@ use std::time::Duration;
 use futures::{StreamExt, TryStreamExt};
 use log::{debug, error};
 use mongodb::{bson::doc, change_stream::event::OperationType, Client};
-use teloxide::{prelude::*, types::ChatId, Bot};
+use teloxide::{prelude::*, types::{ChatId, InlineKeyboardButton, InlineKeyboardMarkup}, Bot};
 
-use crate::{error::Error, model::{AppointmentTable, NotifierSubCol}, utils::compute_diff, constants::NOTIFIER_SUB_COL};
+use crate::{constants::NOTIFIER_SUB_COL, error::Error, model::{AppointmentTable, NotifierSubCol}, utils::{compute_diff, GBSupportedCenters}};
 
 
 pub async fn poll_changes(client: &Client, bot: Bot) -> Result<(), Error> {
@@ -62,18 +62,15 @@ pub async fn poll_changes(client: &Client, bot: Bot) -> Result<(), Error> {
 
                 debug!("added: {:?}\nRemoved: {:?}", &added, &removed);
                 debug!("creating subscriber msg");
-                msg_builder.push_str("added\n");
-                let tm = format!(
-                    "country: {}, center: {}\n", &document.issuer, &document.center
-                );
-                msg_builder.push_str(&tm);
-                if added.is_some() {
-                    for (key, value) in new_slots {
-                        msg_builder.push_str(&key);
-                        for slot in value {
-                            let tm = format!("    {} - {}\n", &slot.td, &slot._type);
-                            msg_builder.push_str(&tm);
-                        }
+                if let Some(added) = added {
+                    if let (Some(center), Some(country)) = GBSupportedCenters::extract_cbd(&document.center) {
+                        msg_builder.push_str(
+                            &AppointmentTable::to_text_from_diff(
+                                center, 
+                                country, 
+                                &added, 
+                            )
+                        )
                     }
                 } else {
                     debug!("No added slots, ignoring event");
@@ -82,17 +79,25 @@ pub async fn poll_changes(client: &Client, bot: Bot) -> Result<(), Error> {
             }
             let mut subscribers = client.database("aspint")
                 .collection::<NotifierSubCol>(NOTIFIER_SUB_COL)
-                .find(doc! {})
-                .await
-                .map_err(Error::MongoDBError)?;
+                .find(doc! { "sub_centers": &document.center })
+                .await?;
 
-            while let Some(sub) = subscribers.try_next().await.map_err(Error::MongoDBError)? {
+            while let Some(sub) = subscribers.try_next().await? {
                 if sub.is_subscribed {
                     bot.send_message(ChatId(sub.chat_id), msg_builder.clone())
-                        .await
-                        .map_err(Error::TeloxideError)?;
+                        .reply_markup(
+                            InlineKeyboardMarkup::new(
+                                vec![vec![
+                                    InlineKeyboardButton::callback(
+                                        "View All", 
+                                        format!("latest_{}", &document.center)
+                                    )
+                                ]]
+                            )
+                        )
+                        .await?;
                 }
-                tokio::time::sleep(Duration::from_secs(2)).await;
+                tokio::time::sleep(Duration::from_secs(2)).await; // rate limiter
             }
         };
     }

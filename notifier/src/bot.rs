@@ -26,12 +26,15 @@ pub async fn run() {
 
     // todo: update poll_changes
     let bot2 = bot.clone();
-    // tokio::spawn(
-    //     async move {
-    //         let j = poll_changes(CLIENT.get().await, bot2).await;
-    //         error!("{:?}", j)
-    //     }
-    // );
+    tokio::spawn(
+        async move {
+            while true {  // failsafe, we dont want watcher to fail.
+                info!("starting poll_changes");
+                let j = poll_changes(CLIENT.get().await, bot2.clone()).await;
+                error!("{:?}", j)
+            }
+        }
+    );
     
     bot.set_my_commands(GeneralCommand::bot_commands())
         .await
