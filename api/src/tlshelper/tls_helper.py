@@ -79,10 +79,12 @@ class TlsHelper:
                 data = await response.json()
                 await logger.debug(f"PMA slots received for {self.fg_id}: {data}")
                 for date, val in data.items():
-                    if date not in available_slots:
-                        available_slots[date] = filter_slot(val, 'pma')
-                    else:
-                        available_slots[date].extend(filter_slot(val, 'pma'))
+                    filtered_slots = filter_slot(val, 'pma')
+                    if len(filtered_slots) > 0:
+                        if date not in available_slots:
+                            available_slots[date] = filter_slot(val, 'pma')
+                        else:
+                            available_slots[date].extend(filter_slot(val, 'pma'))
 
         elif allow_pmwa:
             await logger.debug(f"Checking PMWA slots for {self.fg_id}")
@@ -99,10 +101,12 @@ class TlsHelper:
                 data = await response.json()
                 await logger.debug(f"PMWA slots received for {self.fg_id}: {data}")
                 for date, val in data.items():
-                    if date not in available_slots:
-                        available_slots[date] = filter_slot(val, 'pmwa')
-                    else:
-                        available_slots[date].extend(filter_slot(val, 'pmwa'))
+                    filtered_slots = filter_slot(val, 'pmwa')
+                    if len(filtered_slots) > 0:
+                        if date not in available_slots:
+                            available_slots[date] = filter_slot(val, 'pmwa')
+                        else:
+                            available_slots[date].extend(filter_slot(val, 'pmwa'))
 
         await logger.debug(f"Final computed available slots for {self.fg_id}: {available_slots}")
         return available_slots

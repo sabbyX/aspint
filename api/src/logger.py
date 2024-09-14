@@ -3,6 +3,8 @@ import logging
 
 import structlog
 
+from structlog_sentry import SentryProcessor
+
 
 def configure_logger(enable_json_logs: bool = False):
     timestamper = structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S")
@@ -11,6 +13,7 @@ def configure_logger(enable_json_logs: bool = False):
         timestamper,
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
+        SentryProcessor(),
         structlog.contextvars.merge_contextvars,
         structlog.processors.CallsiteParameterAdder(
             {

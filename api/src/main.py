@@ -1,4 +1,5 @@
 import structlog
+import sentry_sdk
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -9,6 +10,7 @@ from src.lifespan import lifespan
 from src.logger import configure_logger
 from src.routes import main_router
 
+sentry_sdk.init("https://54e5e308c6ddc16198730f94c2a3f864@o389497.ingest.us.sentry.io/4507938115944448")
 configure_logger()
 
 logger = structlog.stdlib.get_logger()
@@ -36,7 +38,7 @@ app.add_middleware(
 app.include_router(main_router)
 
 
-@app.exception_handler(Exception)
+@app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: Exception):
     exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
     await logger.error(f"{request}: {exc_str}")

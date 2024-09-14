@@ -15,8 +15,11 @@ class AvailableSlotTable(BaseModel):
 
 
 class AppointmentTable(Document):
-    issuer: Literal['ch', 'fr']
-    center: Literal['gbLON2ch', 'gbEDI2ch', 'gbMNC2ch']
+    issuer: Literal['ch', 'fr', 'be']
+    center: Literal[
+        'gbLON2ch', 'gbEDI2ch', 'gbMNC2ch',
+        'gbLON2be', 'gbEDI2be', 'gbMNC2be',
+    ]
     slots_available: dict[date, list[Slot]]
 
     class Settings:

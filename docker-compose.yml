@@ -7,19 +7,48 @@ services:
           path: ./api/src
     ports:
       - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
   db:
     image: mongo
     restart: always
     ports:
-      - "8001:27017"
+      - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: user
       MONGO_INITDB_ROOT_PASSWORD: psw
       MONGO_INITDB_DATABASE: aspint
     volumes:
       - ./db:/data/db:rw
-      - ./mongo-init/init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./.mongo/mongo-init/init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./.mongo/replica.key:/data/replica.key
+    entrypoint:
+        - bash
+        - -c
+        - |
+            chmod 400 /data/replica.key
+            chown 999:999 /data/replica.key
+            exec docker-entrypoint.sh $$@  
+    healthcheck:
+      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'db:27017'}]}) }" | mongosh -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --port 27017 --quiet
+      interval: 5s
+      timeout: 30s
+      start_period: 30s
+      start_interval: 1s
+      retries: 30
+    command: "mongod --bind_ip_all --replSet rs0 --keyFile /data/replica.key"
 
   redis:
     image: redis/redis-stack
     restart: always
+
+  tls-adv-listener:
+    build:
+      context: tls-listener/
+      dockerfile: Dockerfile
+    shm_size: 2gb
+    depends_on:
+      - backend

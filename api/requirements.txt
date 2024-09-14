@@ -11,3 +11,5 @@ motor~=3.5.1
 pymongo
 beanie
 redis[hiredis]
+structlog-sentry
+sentry-sdk[pymongo, fastapi]
