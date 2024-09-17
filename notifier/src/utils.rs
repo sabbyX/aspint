@@ -10,6 +10,7 @@ use crate::{error::Error, model::{AppointmentTable, Slot}};
 pub enum SupportedCountries {
     Ch,
     Be,
+    De,
 }
 
 impl SupportedCountries {
@@ -30,7 +31,8 @@ impl SupportedCountries {
     pub fn to_text(self) -> String {
         match &self {
             Self::Ch => "🇨🇭 Switzerland".to_owned(),
-            Self::Be => "🇧🇪 Belgium".to_owned()
+            Self::Be => "🇧🇪 Belgium".to_owned(),
+            Self::De => "🇩🇪 Germany".to_owned(),
         }
     }
 
@@ -38,6 +40,7 @@ impl SupportedCountries {
         match &self {
             Self::Ch => String::from("ch"),
             Self::Be => String::from("be"),
+            Self::De => String::from("de"),
         }
     }
 
@@ -45,6 +48,7 @@ impl SupportedCountries {
         match input {
             "ch" => Some(Self::Ch),
             "be" => Some(Self::Be),
+            "de" => Some(Self::De),
             _ => None
         }
     }

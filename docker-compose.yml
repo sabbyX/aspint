@@ -1,6 +1,7 @@
 services:
   backend:
     build: ./api/
+    image: ghcr.io/sabbyx/aspint-backend:latest
     develop:
       watch:
         - action: rebuild
@@ -49,6 +50,7 @@ services:
     build:
       context: tls-listener/
       dockerfile: Dockerfile
+    image: ghcr.io/sabbyx/aspint-tls-adv-lister:latest
     shm_size: 2gb
     depends_on:
       - backend
