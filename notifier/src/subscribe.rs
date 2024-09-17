@@ -62,7 +62,7 @@ pub async fn subscribe_callback_handler(bot: Bot, cq: CallbackQuery) -> Result<(
                             msg.chat.id,
                             msg.id,
                             format!(
-                                "You're already subscribed to <b>{}</b - <b>{}</b>", 
+                                "You're already subscribed to <b>{}</b> - <b>{}</b>", 
                                 country.to_text(),
                                 center.to_text(),
                             )
@@ -104,7 +104,8 @@ pub async fn subscribe_callback_handler(bot: Bot, cq: CallbackQuery) -> Result<(
                 }
             }
         } else if data.starts_with("latest_") {
-            if let (Some(center), Some(country)) = GBSupportedCenters::extract_cbd(&data) {
+            let cbd: Vec<_> = data.split('_').collect();
+            if let (Some(center), Some(country)) = GBSupportedCenters::extract_cbd(cbd[1]) {
                 if let Some(msg) = cq.message {
                     send_latest_table(bot, msg, center, country).await?
                 }

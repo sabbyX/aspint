@@ -3,7 +3,7 @@ use std::time::Duration;
 use futures::{StreamExt, TryStreamExt};
 use log::{debug, error};
 use mongodb::{bson::doc, change_stream::event::OperationType, Client};
-use teloxide::{prelude::*, types::{ChatId, InlineKeyboardButton, InlineKeyboardMarkup}, Bot};
+use teloxide::{prelude::*, types::{ChatId, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode}, Bot};
 
 use crate::{constants::NOTIFIER_SUB_COL, error::Error, model::{AppointmentTable, NotifierSubCol}, utils::{compute_diff, GBSupportedCenters}};
 
@@ -15,7 +15,6 @@ pub async fn poll_changes(client: &Client, bot: Bot) -> Result<(), Error> {
     let mut change_stream = watch_col.watch().await?;
     debug!("listening");
     while let Some(event) = change_stream.next().await.transpose()? {
-        debug!("new event {:?}", event);
         let mut msg_builder = String::new();
         
         if event.operation_type == OperationType::Insert {
@@ -30,25 +29,17 @@ pub async fn poll_changes(client: &Client, bot: Bot) -> Result<(), Error> {
                 error!("unexpected database structure, expected 2, but got {}",docs.len());
                 continue;
             } else if docs.len() < 2 && !&docs[0].slots_available.is_empty() {
-                msg_builder.push_str("added\n");
-                let tm = format!(
-                    "country: {}, center: {}\n", &document.issuer, &document.center
-                );
-                msg_builder.push_str(&tm);
-                for (key, value) in &docs[0].slots_available {
-                    msg_builder.push_str(key);
-                    for slot in value {
-                        let tm = format!("    {} - {}\n", &slot.td, &slot._type);
-                        msg_builder.push_str(&tm);
-                    }
+                debug!("Found new table, with no twin to compare, sending whole table...");
+                if let (Some(country), Some(center)) = GBSupportedCenters::extract_cbd(&document.center) {
+                    msg_builder.push_str(
+                        &document.to_text(true)
+                    );
                 }
             } else {
                 let older_one = docs[1].clone();
 
                 let new_slots = document.slots_available;
                 let old_slots = older_one.slots_available;
-
-                debug!("older table: {:?}\n new table: {:?}", &old_slots, &new_slots);
 
                 if new_slots.eq(&old_slots) {
                     debug!("both tables are unchanged. ignoring this event");
@@ -85,6 +76,7 @@ pub async fn poll_changes(client: &Client, bot: Bot) -> Result<(), Error> {
             while let Some(sub) = subscribers.try_next().await? {
                 if sub.is_subscribed {
                     bot.send_message(ChatId(sub.chat_id), msg_builder.clone())
+                        .parse_mode(ParseMode::Html)
                         .reply_markup(
                             InlineKeyboardMarkup::new(
                                 vec![vec![
