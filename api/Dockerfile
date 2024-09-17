@@ -1,4 +1,5 @@
 FROM python:3.12-slim-bullseye
+LABEL org.opencontainers.image.source=https://github.com/sabbyx/aspint
 
 WORKDIR /usr/src/app
 COPY requirements.txt ./

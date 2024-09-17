@@ -3,6 +3,7 @@ from fastapi import APIRouter, responses, status
 import structlog
 
 from ..model import TlsAdvListerSlotUpdate, AppointmentTable
+from ..utils import sort_feed
 from ..tlshelper import filter_slot
 
 logger = structlog.stdlib.get_logger()
@@ -46,6 +47,7 @@ async def slot_update(country: str, center: str, data: TlsAdvListerSlotUpdate):
 
     if len(feed) > 0:
         doc = AppointmentTable(issuer=country, center=center, slots_available=feed)
+        doc.slots_available = sort_feed(doc.slots_available)
         res: list[AppointmentTable] = await AppointmentTable.find(
             AppointmentTable.issuer == country,
             AppointmentTable.center == center,

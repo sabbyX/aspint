@@ -8,6 +8,7 @@ from redis.commands.json.path import Path
 from datetime import date, time
 
 from .model import Config
+from .model.appointment_table import Slot
 
 logger = structlog.stdlib.get_logger()
 
@@ -29,3 +30,10 @@ def serialize_slot(d: date, t: time) -> str:
     slot += t.strftime('%H:%M')
 
     return slot
+
+
+def sort_feed(feed: dict[date, list[Slot]]):
+    for k in feed:
+        feed[k] = sorted(feed[k], key=lambda x: x.td)
+    
+    return dict(sorted(feed.items()))
