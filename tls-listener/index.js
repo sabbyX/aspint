@@ -302,9 +302,9 @@ async function b_wrapper(_, c, data, delay) {
                 } catch (e) { console.log("failed to capture, telemetry", e); }
                 captureException(e)
                 console.log(e);
-                browser.close()
             }
             // retry++; failsafe
+            browser.close()
         }
     }
 }
