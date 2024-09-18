@@ -14,7 +14,7 @@ export async function extractJSON(page) {
         const mc = 5;
         var retry = 0;
         while (data == null && retry < mc) {
-            await sleep(1 * 1000);
+            await sleep(1 * 6000);
             retry++;
             data = document.querySelector('pre').innerText;
         }
