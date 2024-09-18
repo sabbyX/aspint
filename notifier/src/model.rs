@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, hash::Hash};
 
-use mongodb::bson::oid::ObjectId;
+use mongodb::{bson::oid::ObjectId, change_stream::event::ResumeToken};
 use serde::{Deserialize, Serialize};
 
 
@@ -33,4 +33,10 @@ pub struct AppointmentTable {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AuthUser {
     pub chat_id: i64
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NotifierResumeToken {
+    pub notifier: String,
+    pub res_token: ResumeToken
 }
