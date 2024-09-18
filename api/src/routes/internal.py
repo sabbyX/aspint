@@ -61,5 +61,7 @@ async def slot_update(country: str, center: str, data: TlsAdvListerSlotUpdate):
             await res[1].delete()
         await doc.save()
         await logger.debug("saved slot info")
+    else:
+        await logger.debug("No available slots found, skipping...")  # todo: dont skip, rather post empty to database.
 
     return responses.Response(status_code=status.HTTP_200_OK)
