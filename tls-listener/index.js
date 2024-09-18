@@ -1,11 +1,12 @@
-// import './intrument.js';
-import {getHomePage, apPage, cfHopRq, tableC1} from './link.js'
+import './intrument.js';
+import {getHomePage, apPage, cfHopRq, tableC1, tableC2, tableC3} from './link.js'
 
 import { connect } from 'puppeteer-real-browser'
 import { newInjectedPage } from 'fingerprint-injector';
 import axios from "axios";
 import {captureException} from "@sentry/node";
 import * as Sentry from "@sentry/node";
+import { extractJSON } from './utils.js';
 
 // @ts-ignore
 console.logCopy = console.log.bind(console);
@@ -20,10 +21,12 @@ console.log = function()
         {
             args[0] = "%o: " + arguments[0];
             args.splice(1, 0, timestamp);
+            // @ts-ignore
             this.logCopy.apply(this, args);
         }
         else
         {
+            // @ts-ignore
             this.logCopy(timestamp, args);
         }
     }
@@ -34,6 +37,25 @@ function sleep(ms) {
 }
 
 const auth = {
+    // 1/3/25
+    'gbLON2de': {
+        'username': 'aspint.de.lon.1@proton.me',
+        'password': 'Test@123',
+        'fg_id': 2687578,
+        'country': 'de',
+    },
+    'gbMNC2de': {
+        'username': 'aspint.de.mnc@proton.me',
+        'password': 'Test@123',
+        'fg_id': 2692445,
+        'country': 'de'
+    },
+    'gbEDI2de': {
+        'username': 'aspint.de.edi@proton.me',
+        'password': 'Test@123',
+        'fg_id': 2692471,
+        'country': 'de',
+    },
     'gbLON2be': {
         'username': 'sopadam438@ploncy.com',
         'password': 'Test@123',
@@ -74,7 +96,7 @@ const auth = {
         'password': 'Test@123',
         'fg_id': 1202133,
         'country': 'ch',
-    }
+    },
 }
 
 function getRndInteger(min, max) {
@@ -112,6 +134,16 @@ const create_browser_task = async (page, c, data) => {
     const u = data.username;
     const p = data.password;
     const f = data.fg_id;
+
+    await page.setRequestInterception(true);
+    page.on('request', interceptedRequest => {
+      if (
+        interceptedRequest.url().endsWith('.png') ||
+        interceptedRequest.url().endsWith('.jpg')
+      )
+        interceptedRequest.abort();
+      else interceptedRequest.continue();
+    });
 
     await page.setViewport({
         width: 1920,
@@ -152,42 +184,44 @@ const create_browser_task = async (page, c, data) => {
     console.log(c+": Finished login procedure..")
 
     var requests = new Map()
-    await page.setRequestInterception(true);
-    await page.on('requestfinished', async (request) => {
-        if (!request.url().endsWith('Stage=appointment')){ return }
-        const response = await request.response();
-        console.log(c+ ": "+ response.url() + " " + request.redirectChain().length + " " + await response.status(), await response.statusText())
-        try {
-            if (request.redirectChain().length === 0 && response.ok()) {
-                try {
-                    const appType = new URL(response.url()).searchParams.get("appointmentType").replace(' ', '');
-                    console.log(c+": Extracted " + appType)
-                    requests.set(appType, await response.json())
-                } catch (e) {
-                    console.log(c+": non-JSON found, expected appointment table: " + await response.text() +  " "+ e.toString());
-                    captureException(e);
-                }
-            }
-        }catch (err) { console.log(err + '\n\n' + request.toString()); captureException(err)}
-    });
-
-    await page.on('request', request => {
-        request.continue();
-    });
-
-    await page.goto(tableC1(data.country, c, f));
-    console.log("naah", await page.content());
     
-    console.log(c+ ": loading appoint page")
-    await page.goto(apPage(data.country) + c + "/" + f)
-    console.log(c+ ": appoint page loaded, proceeding to extract...");
+    console.log(c+ ": starting extraction procedure...");
     var reloadCount = 0;
     var maxRC = getRndInteger(4, 8);
     while (true) {
-        await page.waitForResponse(async (response) => {
-            return response.url().includes("prime")
-        })
-        await waitTillHTMLRendered(page, c);
+        
+        console.log(c+": Extracting normal");
+        await Promise.all([
+            page.goto(tableC1(data.country, c, f)),
+            page.waitForNavigation({waitUntil: 'networkidle0'}),
+        ])
+
+        requests.set("normal", await extractJSON(page));
+
+        console.log(c+": Extracting prime time");
+        await Promise.all([
+            page.goto(tableC2(data.country, c, f)),
+            page.waitForNavigation({waitUntil: 'networkidle0'}),
+        ])
+
+        requests.set("primetime", await extractJSON(page));
+
+        console.log(c+": Extracting prime time weekend");
+        await Promise.all([
+            page.goto(tableC3(data.country, c, f)),
+            page.waitForNavigation({waitUntil: 'networkidle0'}),
+        ])
+
+        requests.set("primetime weekend", await extractJSON(page));
+
+
+        if (requests.size < 3) {
+            console.log(c+": waiting for table requests");
+            await page.waitForResponse(async (response) => {
+                return response.url().includes("prime")
+            })
+            await waitTillHTMLRendered(page, c);
+        }
         if (requests.size < 3) {
             console.log(c+": Expected 3 tables, got " + requests.size + " data=" + Array.from(requests).toString() + ", ignoring event");
         } else {
@@ -213,7 +247,6 @@ const create_browser_task = async (page, c, data) => {
         console.log(c + " sleeping...")
         await sleep(1000 * 60 * 4);
         requests.clear();
-        await page.reload()
         reloadCount++;
         console.log(c+': reload count: ' + reloadCount, "out of ", maxRC);
         if (reloadCount >= maxRC) {
@@ -224,15 +257,29 @@ const create_browser_task = async (page, c, data) => {
     }
 }
 
-async function b_wrapper(browser, c, data, delay) {
+async function b_wrapper(_, c, data, delay) {
     var retry = 0
     // todo: redis
     while (retry <= 3) {
+        const { browser } = await connect({
+            headless: false,
+            args: [
+                "--start-maximized",
+                "--disable-backgrounding-occluded-windows",
+                "--disable-background-timer-throttling",
+                "--disable-renderer-backgrounding"
+            ],
+            customConfig: {},
+            turnstile: true,
+            connectOption: {},
+            disableXvfb: false,
+            ignoreAllFlags: false,
+        })
+
         await sleep(delay)
         try {
-            var bc = await browser.createBrowserContext()
-            //var page = await bc.newPage()
-            var page = await newInjectedPage(bc, {
+            // @ts-ignore
+            var page = await newInjectedPage(browser, {
                 fingerprintOptions: {
                     devices: ['desktop'],
                     operatingSystems: ['windows']
@@ -249,13 +296,13 @@ async function b_wrapper(browser, c, data, delay) {
                     // opt telemetry
                     const data = await page.screenshot({type: 'webp', quality: 50, 'path': `error_${c}.webp`});
                     Sentry.getCurrentScope().addAttachment({
-                        'filename': `error_${c}`,
+                        'filename': `error_${c}.webp`,
                         'data': data
                     });
                 } catch (e) { console.log("failed to capture, telemetry", e); }
                 captureException(e)
                 console.log(e);
-                bc.close()
+                browser.close()
             }
             // retry++; failsafe
         }
@@ -264,26 +311,26 @@ async function b_wrapper(browser, c, data, delay) {
 
 async function bg_task_tls_adv() {
 
-    const { browser } = await connect({
-        headless: false,
-        args: [
-            "--start-maximized",
-            "--disable-backgrounding-occluded-windows",
-            "--disable-background-timer-throttling",
-            "--disable-renderer-backgrounding"
-        ],
-        customConfig: {},
-        turnstile: true,
-        connectOption: {},
-        disableXvfb: false,
-        ignoreAllFlags: false,
-        devTools: true,
-    })
+    // const { browser } = await connect({
+    //     headless: false,
+    //     args: [
+    //         "--start-maximized",
+    //         "--disable-backgrounding-occluded-windows",
+    //         "--disable-background-timer-throttling",
+    //         "--disable-renderer-backgrounding"
+    //     ],
+    //     customConfig: {},
+    //     turnstile: true,
+    //     connectOption: {},
+    //     disableXvfb: false,
+    //     ignoreAllFlags: false,
+    //     devTools: true,
+    // })
 
     const delayIncr = 1000 * 60;  // 1 min delay between listeners, we dont wanna stress out
     let delay = 0;
     for (const center in auth) {
-        b_wrapper(browser, center, auth[center], delay);
+        b_wrapper(null, center, auth[center], delay);
         delay += delayIncr;
     }
 }
