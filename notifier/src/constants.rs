@@ -4,6 +4,7 @@ use mongodb::Client;
 
 pub const NOTIFIER_SUB_COL: &str = "notifier_subs";
 pub const NOTIFIER_AUTH_COL: &str = "notifier_auth";
+pub const NOTIFIER_RESUME_TOKEN_COL: &str = "notifier_resume_token";
 pub const AUTH_KEY: &str = "F{0a2n6PSEr`";
 
 
