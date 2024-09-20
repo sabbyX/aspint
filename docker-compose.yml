@@ -1,4 +1,24 @@
 services:
+  gluetun:
+    image: qmcgaw/gluetun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "8765:8888"
+    environment:
+      - VPN_SERVICE_PROVIDER=expressvpn
+      - OPENVPN_USER=k3tjzlgi132ztpegs6m749d5
+      - OPENVPN_PASSWORD=lhx877m858kzcggfm1uzz1om
+
+      - HTTPPROXY=on
+      - HTTPPROXY_LOG=on
+      - HTTPPROXY_STEALTH=on
+      
+      - SERVER_COUNTRIES=US,France
+      
+      - BLOCK_MALICIOUS=off
+    volumes:
+      - ./gl:/gluetun
   backend:
     build: ./api/
     image: ghcr.io/sabbyx/aspint-backend:latest

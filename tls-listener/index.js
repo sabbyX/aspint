@@ -1,8 +1,9 @@
-import './intrument.js';
+// import './intrument.js';
 import {getHomePage, apPage, cfHopRq, tableC1, tableC2, tableC3} from './link.js'
 
 import { connect } from 'puppeteer-real-browser'
-import { newInjectedPage } from 'fingerprint-injector';
+import { FingerprintInjector } from 'fingerprint-injector';
+import { FingerprintGenerator } from 'fingerprint-generator'
 import axios from "axios";
 import {captureException} from "@sentry/node";
 import * as Sentry from "@sentry/node";
@@ -37,6 +38,33 @@ function sleep(ms) {
 }
 
 const auth = {
+    'gbLON2fr': {
+        'username': 'cobeve6079@ofionk.com',
+        'password': 'Test@123',
+        'fg_id': 16887585,
+        'country': 'fr'
+    }
+}
+
+const auth5 = {
+    'gbLON2fr': {
+        'username': 'tidele4204@ofionk.com',
+        'password': 'Test@123',
+        'fg_id': 16898654,
+        'country': 'fr'
+    }
+}
+
+const auth4 = {
+    'gbLON2fr': {
+        'username': 'peleba6455@cetnob.com',
+        'password': 'Test@123',
+        'fg_id': 16892730,
+        'country': 'fr'
+    }
+}
+
+const auth2 = {
     // 1/3/25
     'gbLON2de': {
         'username': 'aspint.de.lon.1@proton.me',
@@ -135,29 +163,29 @@ const create_browser_task = async (page, c, data) => {
     const p = data.password;
     const f = data.fg_id;
 
-    await page.setRequestInterception(true);
-    page.on('request', interceptedRequest => {
-      if (
-        interceptedRequest.url().endsWith('.png') ||
-        interceptedRequest.url().endsWith('.jpg')
-      )
-        interceptedRequest.abort();
-      else interceptedRequest.continue();
-    });
+    // await page.setRequestInterception(true);
+    // page.on('request', interceptedRequest => {
+    //   if (
+    //     interceptedRequest.url().endsWith('.png') ||
+    //     interceptedRequest.url().endsWith('.jpg')
+    //   )
+    //     interceptedRequest.abort();
+    //   else interceptedRequest.continue();
+    // });
 
-    await page.setViewport({
-        width: 1920,
-        height: 1080
-    });
+    const session = await page.target().createCDPSession();
+    const {windowId} = await session.send('Browser.getWindowForTarget');
+    await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
+
+    // await page.setViewport({
+    //     width: 1920,
+    //     height: 1080
+    // });
     console.log(c + ' loading home page');
     await page.goto(
         getHomePage(data.country, c),
         {waitUntil: 'domcontentloaded'}
     ).catch(_ => {});
-
-    const session = await page.target().createCDPSession();
-    const {windowId} = await session.send('Browser.getWindowForTarget');
-    await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
 
     console.log(c + ": Home Page")
     await page.waitForSelector("#tls-navbar > div > div.tls-navbar--links.-closed.height52 > div.tls-log > div > a").catch(_ => {});
@@ -176,76 +204,125 @@ const create_browser_task = async (page, c, data) => {
     console.log(c+": Login Page")
     await page.waitForSelector('#username')
     await page.focus("#username");
-    await page.keyboard.type(u)
+    await page.keyboard.type(u, {delay: getRndInteger(40, 272)});
     await page.focus("#password");
-    await page.keyboard.type(p)
-    await page.locator("#kc-login").click()
-    await page.waitForNavigation({waitUntil: 'domcontentloaded'});
+    await page.keyboard.type(p, {delay: getRndInteger(56, 300)});
+    await page.realClick("#kc-login")
+    await page.waitForNavigation({waitUntil: 'load'});
     console.log(c+": Finished login procedure..")
 
+    if (data.country == "fr") {
+        console.log(c+": loading personal page")
+        await sleep(4567);
+        await page.waitForSelector(".osano-cm-accept-all");
+        await page.realClick('.osano-cm-accept-all');        
+        await page.waitForSelector("#app > div.tls-form-group-list > div > div.tls-status-card-group > div > div > div.form-group-list-content > table > tr > th.tls-td-contents.tls-td > td.tls-table-cell.tls-delete-form-group > button");
+        await Promise.all([
+            page.realClick("#app > div.tls-form-group-list > div > div.tls-status-card-group > div > div > div.form-group-list-content > table > tr > th.tls-td-contents.tls-td > td.tls-table-cell.tls-delete-form-group > button"),
+        ]);
+        await sleep(10000)
+        console.log(c+"loaded personal page");
+
+        await page.setRequestInterception(true);
+        await page.on('requestfinished', async (request) => {
+            if (!request.url().endsWith('Stage=appointment')){ return }
+            const response = await request.response();
+            console.log(c+ ": "+ response.url() + " " + request.redirectChain().length + " " + await response.status(), await response.statusText())
+            try {
+                if (request.redirectChain().length === 0 && response.ok()) {
+                    try {
+                        const appType = new URL(response.url()).searchParams.get("appointmentType").replace(' ', '');
+                        console.log(c+": Extracted " + appType)
+                        requests.set(appType, await response.json())
+                    } catch (e) {
+                        console.log(c+": non-JSON found, expected appointment table: " + await response.text() +  " "+ e.toString());
+                        captureException(e);
+                    }
+                }
+            }catch (err) { console.log(err + '\n\n' + request.toString()); captureException(err)}
+        });
+
+        await page.on('request', request => {
+            request.continue();
+        });
+
+        console.log(c+": loading appointment page");
+        await page.waitForSelector("#app > div.tls-personal > div > div > div.tls-inquiry-body > div:nth-child(1) > div > div.tls-personal-list > div.tls-button-box > button").catch(_ => {});
+        await page.realCursor.move("#app > div.tls-personal > div > div > div.tls-inquiry-row > div > div > div.tls-personal-list.list-spacing > div > ul.tls-personal-list-rell > li:nth-child(2) > p");
+        await Promise.all([
+            page.realClick("#app > div.tls-personal > div > div > div.tls-inquiry-body > div:nth-child(1) > div > div.tls-personal-list > div.tls-button-box > button"),
+        ])
+        await sleep(15000);
+        console.log(c+"loaded appointment page")
+    }
     var requests = new Map()
     
     console.log(c+ ": starting extraction procedure...");
     var reloadCount = 0;
     var maxRC = getRndInteger(4, 8);
     while (true) {
-        
-        console.log(c+": Extracting normal");
-        await Promise.all([
-            page.goto(tableC1(data.country, c, f)),
-            page.waitForNavigation({waitUntil: 'networkidle0'}),
-        ])
+       
+        if (data.country != "fr") {
+            console.log(c+": Extracting normal");
+            await Promise.all([
+                page.goto(tableC1(data.country, c, f)),
+                page.waitForNavigation({waitUntil: 'networkidle0'}),
+            ])
 
-        requests.set("normal", await extractJSON(page));
+            requests.set("normal", await extractJSON(page));
 
-        console.log(c+": Extracting prime time");
-        await Promise.all([
-            page.goto(tableC2(data.country, c, f)),
-            page.waitForNavigation({waitUntil: 'networkidle0'}),
-        ])
+            console.log(c+": Extracting prime time");
+            await Promise.all([
+                page.goto(tableC2(data.country, c, f)),
+                page.waitForNavigation({waitUntil: 'networkidle0'}),
+            ])
 
-        requests.set("primetime", await extractJSON(page));
+            requests.set("primetime", await extractJSON(page));
 
-        console.log(c+": Extracting prime time weekend");
-        await Promise.all([
-            page.goto(tableC3(data.country, c, f)),
-            page.waitForNavigation({waitUntil: 'networkidle0'}),
-        ])
+            console.log(c+": Extracting prime time weekend");
+            await Promise.all([
+                page.goto(tableC3(data.country, c, f)),
+                page.waitForNavigation({waitUntil: 'networkidle0'}),
+            ])
 
-        requests.set("primetime weekend", await extractJSON(page));
+            requests.set("primetime weekend", await extractJSON(page));
 
 
-        if (requests.size < 3) {
-            console.log(c+": waiting for table requests");
-            await page.waitForResponse(async (response) => {
-                return response.url().includes("prime")
-            })
-            await waitTillHTMLRendered(page, c);
+            if (requests.size < 3) {
+                console.log(c+": waiting for table requests");
+                await page.waitForResponse(async (response) => {
+                    return response.url().includes("prime")
+                })
+                await waitTillHTMLRendered(page, c);
+            }
         }
         if (requests.size < 3) {
             console.log(c+": Expected 3 tables, got " + requests.size + " data=" + Array.from(requests).toString() + ", ignoring event");
         } else {
             console.log(c+": sending slot data to internal api...")
-            const status = await axios.post(
-                `http://backend:8000/internal/slotUpdate/${data.country}/${c}`, {
-                    normal: requests.get('normal'),
-                    prime_time: requests.get('primetime'),
-                    prime_time_weekend: requests.get('primetime weekend'),
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                }
-                );
-            if (status.status !== 200) {
+            // const status = await axios.post(
+            //     `http://backend:8000/internal/slotUpdate/${data.country}/${c}`, {
+            //         normal: requests.get('normal'),
+            //         prime_time: requests.get('primetime'),
+            //         prime_time_weekend: requests.get('primetime weekend'),
+            //     },
+            //     {
+            //         headers: {
+            //             'Content-Type': 'application/json',
+            //         }
+            //     }
+            //     );
+            console.log("normal", requests.get('normal').toString());
+            console.log("pri", requests.get("primetime").toString());
+            console.log("pw", requests.get("primetime weekend").toString);
+            if (200 !== 200) {
                 console.warn(c + ": internal api returned unexpected status.")
             } else {
                 console.log(c+": successfully posted updated slot data to internal api")
             }
         }
         console.log(c + " sleeping...")
-        await sleep(1000 * 60 * 4);
+        await sleep(1000 * 60 * 1);
         requests.clear();
         reloadCount++;
         console.log(c+': reload count: ' + reloadCount, "out of ", maxRC);
@@ -254,14 +331,18 @@ const create_browser_task = async (page, c, data) => {
         }
         const {windowId} = await session.send('Browser.getWindowForTarget');
         await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
+        if (data.country == "fr") {
+            await page.reload()
+        }
     }
 }
 
 async function b_wrapper(_, c, data, delay) {
     var retry = 0
+    var err = false;
     // todo: redis
     while (retry <= 3) {
-        const { browser } = await connect({
+        const { browser, page } = await connect({
             headless: false,
             args: [
                 "--start-maximized",
@@ -271,21 +352,29 @@ async function b_wrapper(_, c, data, delay) {
             ],
             customConfig: {},
             turnstile: true,
-            connectOption: {},
+            connectOption: {
+                defaultViewport: null,
+            },
             disableXvfb: false,
             ignoreAllFlags: false,
+            // proxy: data.country != "fr" ? null : {
+            //     host: "91.26.124.18",
+            //     port: 3128,
+            // }
         })
 
-        await sleep(delay)
+        await sleep(err ? 60 * 10 * 1000 : delay);
         try {
             // @ts-ignore
-            var page = await newInjectedPage(browser, {
-                fingerprintOptions: {
+            var fingerprintGenerator = new FingerprintGenerator({
                     devices: ['desktop'],
-                    operatingSystems: ['windows']
-                }
-            })
+                })
+            var fingerprintInjector = new FingerprintInjector();
+            const fingerprint = fingerprintGenerator.getFingerprint()
+            // await fingerprintInjector.attachFingerprintToPuppeteer(page, fingerprint);
+
             page.setDefaultTimeout(60 * 1000);
+            err = false;
             await create_browser_task(page, c, data);
         } catch (e) {
             if (e == 'reload') {
@@ -302,6 +391,7 @@ async function b_wrapper(_, c, data, delay) {
                 } catch (e) { console.log("failed to capture, telemetry", e); }
                 captureException(e)
                 console.log(e);
+                err = true;
             }
             // retry++; failsafe
             browser.close()

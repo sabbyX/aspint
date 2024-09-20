@@ -19,6 +19,8 @@ class AppointmentTable(Document):
     center: Literal[
         'gbLON2ch', 'gbEDI2ch', 'gbMNC2ch',
         'gbLON2be', 'gbEDI2be', 'gbMNC2be',
+        'gbLON2fr', 'gbEDI2fr', 'gbMNC2fr',
+        'gbLON2de', 'gbEDI2de', 'gbMNC2de',
     ]
     slots_available: dict[date, list[Slot]]
 
