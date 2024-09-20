@@ -25,7 +25,7 @@ impl SupportedCountries {
     }
 
     pub fn iterator() -> impl Iterator<Item = SupportedCountries> {
-        [Self::Ch, Self::Be].iter().copied()
+        [Self::Ch, Self::Be, Self::De].iter().copied()
     }
 
     pub fn to_text(self) -> String {
