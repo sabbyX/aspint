@@ -22,3 +22,38 @@ export async function extractJSON(page) {
     })
     return json
 }
+
+export const waitTillHTMLRendered = async (page, c, timeout = 30000) => {
+    const checkDurationMsecs = 1000;
+    const maxChecks = timeout / checkDurationMsecs;
+    let lastHTMLSize = 0;
+    let checkCounts = 1;
+    let countStableSizeIterations = 0;
+    const minStableSizeIterations = 3;
+
+    while(checkCounts++ <= maxChecks){
+        let html = await page.content();
+        let currentHTMLSize = html.length;
+
+        if(lastHTMLSize !== 0 && currentHTMLSize === lastHTMLSize)
+            countStableSizeIterations++;
+        else
+            countStableSizeIterations = 0; //reset the counter
+
+        if(countStableSizeIterations >= minStableSizeIterations) {
+            console.log(c+ ": Page rendered fully..");
+            break;
+        }
+
+        lastHTMLSize = currentHTMLSize;
+        await sleep(checkDurationMsecs)
+    }
+};
+
+export function getRndInteger(min, max) {
+    return Math.floor(Math.random() * (max - min) ) + min;
+}
+
+export function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}

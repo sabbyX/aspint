@@ -1,5 +1,5 @@
 import datetime
-from typing import Literal, Dict
+from typing import Literal, Dict, Optional
 from datetime import date, time
 from beanie import Document
 from pydantic import BaseModel
@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 class Slot(BaseModel):
     td: time
-    type: Literal['normal', 'pma', 'pmwa']
+    type: str
 
 
 class AvailableSlotTable(BaseModel):
@@ -15,7 +15,7 @@ class AvailableSlotTable(BaseModel):
 
 
 class AppointmentTable(Document):
-    issuer: Literal['ch', 'fr', 'be']
+    issuer: Literal['ch', 'fr', 'be', 'de']
     center: Literal[
         'gbLON2ch', 'gbEDI2ch', 'gbMNC2ch',
         'gbLON2be', 'gbEDI2be', 'gbMNC2be',

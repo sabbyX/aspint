@@ -37,3 +37,20 @@ def sort_feed(feed: dict[date, list[Slot]]):
         feed[k] = sorted(feed[k], key=lambda x: x.td)
     
     return dict(sorted(feed.items()))
+
+
+def extract_center_code(center: str):
+    return center[-2:]
+
+
+# todo: avoid serialize
+def serialize_stype(ty: str):
+    match ty:
+        case "prime time":
+            return "pma"
+        case "prime time weekend":
+            return "pwma"
+        case "normal":
+            return "normal"
+        case _:
+            return ty

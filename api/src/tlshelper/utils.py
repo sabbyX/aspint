@@ -77,5 +77,5 @@ class IncompleteApplicationError(Exception):
         self.message = message
 
 
-def filter_slot(s: dict[str, int], a_type: Literal['normal', 'pmwa', 'pma']) -> list[dict[str, str]]:
+def filter_slot(s: dict[str, int], a_type: str) -> list[dict[str, str]]:
     return [{'td': td, 'type': a_type} for td, avail in s.items() if avail == 1]

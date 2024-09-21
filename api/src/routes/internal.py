@@ -1,9 +1,14 @@
+from datetime import timedelta
 import pymongo
-from fastapi import APIRouter, responses, status
+from redis.asyncio import Redis
+from redis.commands.json.path import Path
+from fastapi import APIRouter, Depends, responses, status
 import structlog
 
+from src.cache import get_cache
+
 from ..model import TlsAdvListerSlotUpdate, AppointmentTable
-from ..utils import sort_feed
+from ..utils import extract_center_code, serialize_stype, sort_feed
 from ..tlshelper import filter_slot
 
 logger = structlog.stdlib.get_logger()
@@ -18,7 +23,7 @@ async def slot_listener_data():
 
 @router.post("/slotUpdate/{country}/{center}")
 async def slot_update(country: str, center: str, data: TlsAdvListerSlotUpdate):
-    await logger.debug("Received data from tls advanced listener")
+    await logger.debug(f"Received data from tls advanced listener: {center}")
     feed: dict[str, list[dict[str, str]]] = {}
 
     await logger.debug(f"Normal slots: {len(data.normal)}")
@@ -45,23 +50,73 @@ async def slot_update(country: str, center: str, data: TlsAdvListerSlotUpdate):
             else:
                 feed[date].extend(filter_slot(val, 'pmwa'))
 
-    if len(feed) > 0:
-        doc = AppointmentTable(issuer=country, center=center, slots_available=feed)
-        doc.slots_available = sort_feed(doc.slots_available)
-        res: list[AppointmentTable] = await AppointmentTable.find(
-            AppointmentTable.issuer == country,
-            AppointmentTable.center == center,
-        ).sort(
-            [
-                (AppointmentTable.id, pymongo.DESCENDING)
-            ]
-        ).to_list()
-        await logger.debug("found slots at database", count=len(res), db_found=res)
-        if len(res) > 1:
-            await res[1].delete()
-        await doc.save()
-        await logger.debug("saved slot info")
-    else:
-        await logger.debug("No available slots found, skipping...")  # todo: dont skip, rather post empty to database.
+    doc = AppointmentTable(issuer=country, center=center, slots_available=feed)
+    doc.slots_available = sort_feed(doc.slots_available)
+    res: list[AppointmentTable] = await AppointmentTable.find(
+        AppointmentTable.issuer == country,
+        AppointmentTable.center == center,
+    ).sort(
+        [
+            (AppointmentTable.id, pymongo.DESCENDING)
+        ]
+    ).to_list()
+    await logger.debug("found slots at database", count=len(res))
+    if len(res) > 1:
+        await res[1].delete()
+    await doc.save()
+    await logger.debug("saved slot info")
 
     return responses.Response(status_code=status.HTTP_200_OK)
+
+
+@router.post("/lazyUpdate/{uid}/{type}/{center}")
+async def lazy_update(
+    uid: int, 
+    type: str, 
+    center: str, 
+    data: dict[str, dict[str, int]],
+    deps_inj_cache: Redis = Depends(get_cache)
+    ):
+    await logger.debug(f"Received lazy load request for {center}::{type} with uid:{uid}", data_count=len(data))
+    country = extract_center_code(center)
+    assert country == "fr"  # lazy update at the moment supports france only
+    if not await deps_inj_cache.exists(str(uid)):
+        await deps_inj_cache.json().set(str(uid), Path.root_path(), {})
+        await deps_inj_cache.expire(str(uid), timedelta(seconds=120))
+    await deps_inj_cache.json().set(str(uid), '.' + type.replace(' ', '%%'), data)
+
+    # check if data is complete?
+    cdata: dict[str, dict[str, dict[str, int]]] = await deps_inj_cache.json().get(uid)
+    await logger.debug(cdata)
+    if len(cdata.keys()) < 4:
+        return responses.Response(status_code=status.HTTP_200_OK)
+    await logger.debug(f"Lazy load data of {center}::{type}::{uid} is complete, initiating further procedure")
+    
+    await deps_inj_cache.json().delete(str(uid))
+    feed: dict[str, list[dict[str, str]]] = {}
+    for ty, slots in cdata.items():
+        ty = ty.replace('%%', ' ')
+        for date, val in slots.items():
+            filtered_slots = filter_slot(val, serialize_stype(ty))
+            if len(filtered_slots) > 0:
+                if date not in feed:
+                    feed[date] = filtered_slots
+                else:
+                    feed[date].extend(filtered_slots)
+    
+    await logger.debug("storing slots into database...")
+    doc = AppointmentTable(issuer=country, center=center, slots_available=feed)
+    doc.slots_available = sort_feed(doc.slots_available)
+    res: list[AppointmentTable] = await AppointmentTable.find(
+        AppointmentTable.issuer == country,
+        AppointmentTable.center == center,
+    ).sort(
+        [
+            (AppointmentTable.id, pymongo.DESCENDING)
+        ]
+    ).to_list()
+    await logger.debug("found slots at database", count=len(res), db_found=res)
+    if len(res) > 1:
+        await res[1].delete()
+    await doc.save()
+    await logger.debug("saved slot info")
