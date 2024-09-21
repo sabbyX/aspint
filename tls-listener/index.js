@@ -203,7 +203,7 @@ const create_browser_task = async (page, c, data) => {
         // todo
         await sleep(5000)
     }
-
+    await sleep(getRndInteger(1500, 2000));
     console.log(c+": Login procedure finished")
     var requests = new Map()
 
@@ -216,13 +216,14 @@ const create_browser_task = async (page, c, data) => {
             console.log(c+ ": "+ response.url() + " " + request.redirectChain().length + " " + await response.status(), await response.statusText())
             try {
                 if ([403,429].includes(await response.status())) {
-                    console.warn(c,"blocked by cloudflare WAF")
+                    console.warn(c+": possibly blocked by cloudflare WAF")
                 }
                 if (request.redirectChain().length === 0 && response.ok()) {
                     try {
                         const appType = new URL(response.url()).searchParams.get("appointmentType");
                         console.log(c+": Extracted " + appType)
                         //requests.set(appType, await response.json())
+                        await sleep(250);  // we dont wanna stress internal api
                         await axios.post(
                             `http://localhost:8000/internal/lazyUpdate/${f}/${appType}/${c}`,
                             await response.json(),
@@ -347,10 +348,10 @@ async function b_wrapper(_, c, data, delay) {
             },
             disableXvfb: false,
             ignoreAllFlags: false,
-            // proxy: data.country != "fr" ? null : {
-            //     host: "91.26.124.18",
-            //     port: 3128,
-            // }
+            proxy: data.country != "fr" ? null : {
+                host: "localhost",
+                port: 8765,
+            }
         })
         await sleep(err ? 60 * 10 * 1000 : delay);
         try {
