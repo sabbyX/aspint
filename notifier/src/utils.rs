@@ -1,31 +1,39 @@
-use std::collections::{HashMap, HashSet};
+use futures::TryStreamExt;
+use indexmap::{IndexMap, IndexSet};
 
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use log::debug;
-use teloxide::{types::{InlineKeyboardButton, InlineKeyboardMarkup}, utils::html::bold};
+use mongodb::bson::doc;
+use teloxide::{prelude::*, types::{InlineKeyboardButton, InlineKeyboardMarkup, Message, ParseMode}, utils::html::bold, Bot};
 
-use crate::{error::Error, model::{AppointmentTable, Slot}};
+use crate::{constants::CLIENT, error::Error, model::{AppointmentTable, Slot}};
 
 #[derive(Clone, Copy, Debug)]
 pub enum SupportedCountries {
     Ch,
     Be,
     De,
+    Fr,
 }
 
 impl SupportedCountries {
-    pub fn create_kb() -> InlineKeyboardMarkup {
+    pub fn create_kb(custom_pre: Option<&str>) -> InlineKeyboardMarkup {
         let mut kb = vec![];
 
         for c in Self::iterator() {
-            let row = vec![InlineKeyboardButton::callback(c.to_text(), c.to_callback_data())];
+            let cbd = if let Some(pre) = custom_pre {
+                c.to_code_with_prefix(pre)
+            } else {
+                c.to_code()
+            };
+            let row = vec![InlineKeyboardButton::callback(c.to_text(), cbd)];
             kb.push(row);
         }
         InlineKeyboardMarkup::new(kb)
     }
 
     pub fn iterator() -> impl Iterator<Item = SupportedCountries> {
-        [Self::Ch, Self::Be, Self::De].iter().copied()
+        [Self::Be, Self::De, Self::Fr, Self::Ch].iter().copied()
     }
 
     pub fn to_text(self) -> String {
@@ -33,43 +41,63 @@ impl SupportedCountries {
             Self::Ch => "🇨🇭 Switzerland".to_owned(),
             Self::Be => "🇧🇪 Belgium".to_owned(),
             Self::De => "🇩🇪 Germany".to_owned(),
+            Self::Fr => "🇫🇷 France".to_owned()
         }
     }
 
-    pub fn to_callback_data(self) -> String {
+    pub fn to_code(self) -> String {
         match &self {
             Self::Ch => String::from("ch"),
             Self::Be => String::from("be"),
             Self::De => String::from("de"),
+            Self::Fr => String::from("fr"),
         }
     }
 
-    pub fn from_callback_data(input: &str) -> Option<Self> {
+    pub fn to_code_with_prefix(self, prefix: &str) -> String {
+        let mut code = String::from(prefix);
+        code.push_str(&self.to_code());
+        code
+    }
+
+    pub fn from_code(input: &str) -> Option<Self> {
         match input {
             "ch" => Some(Self::Ch),
             "be" => Some(Self::Be),
             "de" => Some(Self::De),
+            "fr" => Some(Self::Fr),
             _ => None
         }
     }
+
+    pub fn from_code_with_prefix(input: &str, prefix: &str) -> Option<Self> {
+        let code = input.strip_prefix(prefix).unwrap_or_default();
+        Self::from_code(code)
+    }
+    
 }
 
 #[derive(Clone, Copy, Debug)]
 pub enum GBSupportedCenters {
-    LON,  // London
-    EDI,  // Edinburgh
-    MNC,  // Manchester
+    Lon,  // London
+    Edi,  // Edinburgh
+    Mnc,  // Manchester
 }
 
 impl GBSupportedCenters {
     pub fn iterator() -> impl Iterator<Item = Self> {
-        [Self::LON, Self::EDI, Self::MNC].iter().copied()
+        [Self::Lon, Self::Edi, Self::Mnc].iter().copied()
     }
 
-    pub fn to_kb(to_country: &str) -> InlineKeyboardMarkup {
+    pub fn to_kb(to_country: &str, custom_pre: Option<&str>) -> InlineKeyboardMarkup {
         let mut kb = vec![];
         for c in Self::iterator() {
-            let row = vec![InlineKeyboardButton::callback(c.to_text(), c.to_callback_data(to_country))];
+            let cbd = if let Some(prefix) = custom_pre {
+                c.to_code_with_prefix(to_country, prefix)
+            } else {
+                c.to_code(to_country)
+            };
+            let row = vec![InlineKeyboardButton::callback(c.to_text(), cbd)];
             kb.push(row)
         }
         InlineKeyboardMarkup::new(kb)
@@ -77,37 +105,48 @@ impl GBSupportedCenters {
 
     pub fn to_text(self) -> String {
         match self {
-            Self::LON => String::from("London"),
-            Self::EDI => String::from("Edinburgh"),
-            Self::MNC => String::from("Manchester"),
+            Self::Lon => String::from("London"),
+            Self::Edi => String::from("Edinburgh"),
+            Self::Mnc => String::from("Manchester"),
         }
     }
 
-    pub fn to_callback_data(self, to_country: &str) -> String {
+    pub fn to_code(self, to_country: &str) -> String {
         match &self {
-            Self::LON => format!("gbLON2{to_country}"),
-            Self::EDI => format!("gbEDI2{to_country}"),
-            Self::MNC => format!("gbMNC2{to_country}"),
+            Self::Lon => format!("gbLON2{to_country}"),
+            Self::Edi => format!("gbEDI2{to_country}"),
+            Self::Mnc => format!("gbMNC2{to_country}"),
         }
     }
 
-    pub fn extract_cbd(cbd: &str) -> (Option<Self>, Option<SupportedCountries>) {
+    pub fn to_code_with_prefix(self, to_country: &str, prefix: &str) -> String {
+        let mut code = String::from(prefix);
+        code.push_str(&self.to_code(to_country));
+        code
+    }
+
+    pub fn from_code(cbd: &str) -> (Option<Self>, Option<SupportedCountries>) {
         let cnty = &cbd[cbd.len()-2..cbd.len()];
         match cbd[0..cbd.len()-2].to_lowercase().as_str() {
-            "gblon2" => (Some(Self::LON), SupportedCountries::from_callback_data(cnty)),
-            "gbedi2" => (Some(Self::EDI), SupportedCountries::from_callback_data(cnty)),
-            "gbmnc2" => (Some(Self::MNC), SupportedCountries::from_callback_data(cnty)),
+            "gblon2" => (Some(Self::Lon), SupportedCountries::from_code(cnty)),
+            "gbedi2" => (Some(Self::Edi), SupportedCountries::from_code(cnty)),
+            "gbmnc2" => (Some(Self::Mnc), SupportedCountries::from_code(cnty)),
             _ => (None, None)
         }
     }
 
+    pub fn from_code_with_prefix(cbd: &str, prefix: &str) -> (Option<Self>, Option<SupportedCountries>) {
+        let code = cbd.strip_prefix(prefix).unwrap_or_default();
+        Self::from_code(code)
+    }
+
 }
 
-type AptTable = HashMap<String, HashSet<Slot>>;
+type AptTable = IndexMap<String, IndexSet<Slot>>;
 
 pub fn compute_diff<'a>(new: &'a AptTable, old: &'a AptTable) -> (Option<AptTable>, Option<AptTable>) {
-    let mut added: AptTable = HashMap::new();
-    let mut removed: AptTable = HashMap::new();
+    let mut added: AptTable = IndexMap::new();
+    let mut removed: AptTable = IndexMap::new();
 
     for (key, value) in old {
         if !new.contains_key(key) {
@@ -120,14 +159,14 @@ pub fn compute_diff<'a>(new: &'a AptTable, old: &'a AptTable) -> (Option<AptTabl
             if value != old_value {
                 let updated_removed = old_value.difference(value)
                     .cloned()
-                    .collect::<HashSet<_>>();
+                    .collect::<IndexSet<_>>();
                 if !updated_removed.is_empty() {
                     removed.insert(key.clone(), updated_removed);
                 }
 
                 let updated_added = value.difference(old_value)
                     .cloned()
-                    .collect::<HashSet<_>>();
+                    .collect::<IndexSet<_>>();
                 if !updated_added.is_empty() {
                     added.insert(key.clone(), updated_added);
                 }
@@ -136,14 +175,14 @@ pub fn compute_diff<'a>(new: &'a AptTable, old: &'a AptTable) -> (Option<AptTabl
     }
 
     (
-        if added.len() > 0 { Some(added) } else { None },
-        if removed.len() > 0 { Some(removed) } else { None }
+        if !added.is_empty() { Some(added) } else { None },
+        if !removed.is_empty() { Some(removed) } else { None }
     )
 }
 
 impl AppointmentTable {
     pub fn to_text(&self, latest: bool) -> String {
-        if let (Some(center), Some(country)) = GBSupportedCenters::extract_cbd(&self.center)  {
+        if let (Some(center), Some(country)) = GBSupportedCenters::from_code(&self.center)  {
             // Latest Table for <country>(<center>)
             // (last updated at: <>)
             let mut msgbuilder = String::new();
@@ -165,7 +204,11 @@ impl AppointmentTable {
                 msgbuilder.push_str("last updated at: ");
                 let dtfmt = dt.with_timezone(&tz).format("%d/%m/%Y %H:%M");
                 msgbuilder.push_str(&format!("{}\n\n", dtfmt));
-                msgbuilder.push_str(&Self::__proto_build(&self.slots_available));
+                if self.slots_available.is_empty() {
+                    msgbuilder.push_str("No slots available right now.");
+                } else {
+                    msgbuilder.push_str(&Self::__proto_build(&self.slots_available));
+                }
             }
             msgbuilder
         } else {
@@ -173,7 +216,7 @@ impl AppointmentTable {
         }
     }
 
-    fn __proto_build(s: &HashMap<String, HashSet<Slot>>) -> String {
+    fn __proto_build(s: &IndexMap<String, IndexSet<Slot>>) -> String {
         let mut msgbuilder = String::new();
         for (date, slots) in s {
             let dt = NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap();
@@ -183,7 +226,8 @@ impl AppointmentTable {
                     "normal" => "Normal",
                     "pma" => "Prime Time",
                     "pmwa" => "Prime Time Weekend",
-                    _ => "Unknown",
+                    "Short_stay" => "Short Stay",
+                    _ => &slots._type,
                 };
                 msgbuilder.push_str(&format!("    {}: {}\n", slots.td, slot_type));
             }
@@ -195,8 +239,8 @@ impl AppointmentTable {
     pub fn to_text_from_diff(
         center: GBSupportedCenters,
         country: SupportedCountries,
-        added: &HashMap<String, HashSet<Slot>>, 
-        // _: &HashMap<String, HashSet<Slot>>
+        added: &IndexMap<String, IndexSet<Slot>>, 
+        // _: &IndexMap<String, IndexSet<Slot>>
     ) -> String {
         let mut msgbuilder = String::new();
         msgbuilder.push_str("Newly Updated Table for ");
@@ -211,13 +255,46 @@ impl AppointmentTable {
     }
 }
 
+pub async fn send_latest_table(bot: Bot, msg: Message, center: GBSupportedCenters, country: SupportedCountries, edit: bool) -> Result<(), Error> {
+    debug!("sending latest table");
+    let db = CLIENT.get().await
+        .database("aspint")
+        .collection::<AppointmentTable>("appointment_table");
+    debug!("fetching current table");
+    let curr_table = db.find(doc! { "center": center.to_code(&country.to_code()) })
+        .sort(doc! { "_id": -1 })
+        .await?
+        .try_collect::<Vec<_>>()
+        .await?;
+    if let Some(table) = curr_table.first() {
+        debug!("found latest table");
+        let t_text = table.to_text(true);
+        
+        if edit {
+            bot.edit_message_text(msg.chat.id, msg.id, t_text)
+                .parse_mode(ParseMode::Html)
+                .await?;
+        } else {
+            bot.send_message(msg.chat.id, t_text).parse_mode(ParseMode::Html).await?;
+        }
+    } else if edit {
+        bot.edit_message_text(msg.chat.id, msg.id, "No data found.")
+            .parse_mode(ParseMode::Html)
+            .await?;
+    } else {
+        bot.send_message(msg.chat.id, "No data found").parse_mode(ParseMode::Html).await?;
+    }
+    Ok(())
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_diff() {
-        let mut old_slot: AptTable = HashMap::new();
+        let mut old_slot: AptTable = IndexMap::new();
         let slot = [
             Slot { td: "08:30".into(), _type: "normal".into() },
             Slot { td: "09:30".into(), _type: "normal".into() },
@@ -226,8 +303,8 @@ mod tests {
             Slot { td: "12:30".into(), _type: "normal".into() },
             Slot { td: "13:30".into(), _type: "normal".into() },
         ];
-        old_slot.insert("01-01-0001".into(), HashSet::from(slot.clone()));
-        old_slot.insert("02-01-0001".into(), HashSet::from(slot.clone()));
+        old_slot.insert("01-01-0001".into(), IndexSet::from(slot.clone()));
+        old_slot.insert("02-01-0001".into(), IndexSet::from(slot.clone()));
 
         let slot2 = [
             Slot { td: "10:30".into(), _type: "normal".into() },
@@ -235,8 +312,8 @@ mod tests {
             Slot { td: "14:30".into(), _type: "normal".into() },
         ];
         
-        let mut new_slot: AptTable = HashMap::new();
-        new_slot.insert("02-01-0001".into(), HashSet::from(slot2));
+        let mut new_slot: AptTable = IndexMap::new();
+        new_slot.insert("02-01-0001".into(), IndexSet::from(slot2));
 
         let (added, removed) = compute_diff(&new_slot, &old_slot);
         println!("a: {:?}, b: {:?}", added, removed);

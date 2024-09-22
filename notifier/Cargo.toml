@@ -10,6 +10,7 @@ edition = "2021"
 tokio = { version = "1.40.0", features = ["macros", "rt", "rt-multi-thread"] }
 teloxide = { version =  "0.12.2", features = ["macros"] }
 log = { version = "0.4.22", features = [] }
+indexmap = { version = "2.5.0", features = ["serde"] }
 env_logger = "0.11.5"
 async_once = "0.2.6"
 lazy_static = "1.5.0"

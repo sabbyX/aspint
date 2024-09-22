@@ -1,7 +1,14 @@
 use mongodb::bson::doc;
-use crate::{constants::{AUTH_KEY, CLIENT, NOTIFIER_AUTH_COL}, error::Error, model::AuthUser, subscribe::{new_subscribe_cmd_handler, subscribe_callback_handler}, watch::poll_changes};
+use crate::{
+    constants::{AUTH_KEY, CLIENT, NOTIFIER_AUTH_COL}, 
+    error::Error, 
+    model::AuthUser, 
+    subscribe::{new_subscribe_cmd_handler, subscribe_callback_handler}, 
+    table::{table_callback_query, table_cmd_handler},
+    watch::poll_changes
+};
 
-use teloxide::{dispatching::{dialogue::GetChatId, HandlerExt}, prelude::*, utils::command::BotCommands};
+use teloxide::{dispatching::HandlerExt, prelude::*, utils::command::BotCommands};
 use log::{debug, error, info};
 
 #[derive(BotCommands, Clone)]
@@ -18,6 +25,8 @@ pub enum GeneralCommand {
 pub enum AuthenticatedCommand {
     #[command(description = "Subscribe to slot notifications")]
     Subscribe,
+    #[command(description = "Displays all available slots in chosen center")]
+    Slots,
 }
 
 pub async fn run() {
@@ -28,7 +37,7 @@ pub async fn run() {
     let bot2 = bot.clone();
     tokio::spawn(
         async move {
-            while true {  // failsafe, we dont want watcher to fail.
+            loop {  // failsafe, we dont want watcher to fail.
                 info!("starting poll_changes");
                 let j = poll_changes(CLIENT.get().await, bot2.clone()).await;
                 error!("{:?}", j)
@@ -52,9 +61,9 @@ pub async fn run() {
                 .endpoint(authenticated_command_handler),
         )
         .branch(
-            Update::filter_callback_query().endpoint(subscribe_callback_handler),   
+            Update::filter_callback_query()
+                .endpoint(main_cb_handler)
         );
-
     Dispatcher::builder(bot, handler2)
         .enable_ctrlc_handler()
         .build()
@@ -110,5 +119,18 @@ async fn authenticated_command_handler(msg: Message, bot: Bot, cmd: Authenticate
     debug!("authenicated user requesting command: {:?}", cmd);
     match cmd {
         AuthenticatedCommand::Subscribe => new_subscribe_cmd_handler(msg, bot).await,
+        AuthenticatedCommand::Slots => table_cmd_handler(msg, bot).await,
     }
+}
+
+async fn main_cb_handler(bot: Bot, cq: CallbackQuery) -> Result<(), Error> {
+    debug!("main callback handler");
+    if let Some(data) = &cq.data {
+        if data.starts_with("table_") {
+            table_callback_query(bot, cq).await?;
+        } else {
+            subscribe_callback_handler(bot, cq).await?
+        }
+    }
+    Ok(())
 }

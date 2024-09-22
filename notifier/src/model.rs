@@ -1,5 +1,6 @@
-use std::{collections::{HashMap, HashSet}, hash::Hash};
+use std::hash::Hash;
 
+use indexmap::{IndexMap, IndexSet};
 use mongodb::{bson::oid::ObjectId, change_stream::event::ResumeToken};
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +28,7 @@ pub struct AppointmentTable {
     pub id: Option<ObjectId>,
     pub center: String,
     pub issuer: String,
-    pub slots_available: HashMap<String, HashSet<Slot>>,
+    pub slots_available: IndexMap<String, IndexSet<Slot>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -6,6 +6,4 @@ pub enum Error {
     TeloxideError(#[from] teloxide::RequestError),
     #[error("mongodb error: {0}")]
     MongoDBError(#[from] mongodb::error::Error),
-    #[error("unsupported country {0}")]
-    UnsupportedCountry(String),
 }
