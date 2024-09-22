@@ -1194,6 +1194,7 @@ dependencies = [
  "chrono",
  "env_logger",
  "futures",
+ "indexmap 2.5.0",
  "lazy_static",
  "log",
  "mongodb",

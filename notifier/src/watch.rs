@@ -46,51 +46,50 @@ pub async fn poll_changes(client: &Client, bot: Bot) -> Result<(), Error> {
 
                 if new_slots.eq(&old_slots) {
                     debug!("{}: both tables are unchanged. ignoring this event", &document.center);
-                    continue
-                }
-
-                debug!("computing the diff");
-                let (added, removed) = compute_diff(
-                    &new_slots, &old_slots
-                );
-
-                debug!("{}: added: {:?}\nRemoved: {:?}", &document.center, &added, &removed);
-                debug!("creating subscriber msg");
-                if let Some(added) = added {
-                    if let (Some(center), Some(country)) = GBSupportedCenters::extract_cbd(&document.center) {
-                        msg_builder.push_str(
-                            &AppointmentTable::to_text_from_diff(
-                                center, 
-                                country, 
-                                &added, 
-                            )
-                        )
-                    }
-                    let mut subscribers = client.database("aspint")
-                        .collection::<NotifierSubCol>(NOTIFIER_SUB_COL)
-                        .find(doc! { "sub_centers": &document.center })
-                        .await?;
-        
-                    while let Some(sub) = subscribers.try_next().await? {
-                        if sub.is_subscribed {
-                            bot.send_message(ChatId(sub.chat_id), msg_builder.clone())
-                                .parse_mode(ParseMode::Html)
-                                .reply_markup(
-                                    InlineKeyboardMarkup::new(
-                                        vec![vec![
-                                            InlineKeyboardButton::callback(
-                                                "View All", 
-                                                format!("latest_{}", &document.center)
-                                            )
-                                        ]]
-                                    )
-                                )
-                                .await?;
-                        }
-                        tokio::time::sleep(Duration::from_secs(2)).await; // rate limiter
-                    }
                 } else {
-                    debug!("No added slots, ignoring event");
+                    debug!("computing the diff");
+                    let (added, removed) = compute_diff(
+                        &new_slots, &old_slots
+                    );
+
+                    debug!("{}: added: {:?}\nRemoved: {:?}", &document.center, &added, &removed);
+                    debug!("creating subscriber msg");
+                    if let Some(added) = added {
+                        if let (Some(center), Some(country)) = GBSupportedCenters::from_code(&document.center) {
+                            msg_builder.push_str(
+                                &AppointmentTable::to_text_from_diff(
+                                    center, 
+                                    country, 
+                                    &added, 
+                                )
+                            )
+                        }
+                        let mut subscribers = client.database("aspint")
+                            .collection::<NotifierSubCol>(NOTIFIER_SUB_COL)
+                            .find(doc! { "sub_centers": &document.center })
+                            .await?;
+            
+                        while let Some(sub) = subscribers.try_next().await? {
+                            if sub.is_subscribed {
+                                bot.send_message(ChatId(sub.chat_id), msg_builder.clone())
+                                    .parse_mode(ParseMode::Html)
+                                    .reply_markup(
+                                        InlineKeyboardMarkup::new(
+                                            vec![vec![
+                                                InlineKeyboardButton::callback(
+                                                    "View All", 
+                                                    format!("latest_{}", &document.center)
+                                                )
+                                            ]]
+                                        )
+                                    )
+                                    .await?;
+                            }
+                            tokio::time::sleep(Duration::from_secs(2)).await; // rate limiter
+                        }
+                    } else {
+                        debug!("No added slots, ignoring event");
+                    }
                 }
             }
 
