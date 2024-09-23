@@ -1,0 +1,8 @@
+[[roles]]
+name = "internal"
+routes = [
+    "GET /v1/openvpn/status",
+    "GET /v1/publicip/ip"
+]
+
+auth = "none"
