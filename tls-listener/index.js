@@ -1,16 +1,21 @@
 // import './intrument.js';
-import {getHomePage, apPage, cfHopRq, tableC1, tableC2, tableC3} from './link.js'
+import {getHomePage, apPage, cfHopRq, tableC1, tableC2, tableC3, cfHopRq2} from './link.js'
 
 import { connect } from 'puppeteer-real-browser'
-import { FingerprintInjector } from 'fingerprint-injector';
-import { FingerprintGenerator } from 'fingerprint-generator'
 import pkg from 'ghost-cursor';
-const { getRandomPagePoint, installMouseHelper } = pkg;import axios from "axios";
+const { getRandomPagePoint, installMouseHelper } = pkg;
+import axios from "axios";
 import {captureException} from "@sentry/node";
 import * as Sentry from "@sentry/node";
 import { extractJSON, waitTillHTMLRendered, sleep, getRndInteger } from './utils.js';
+import { setHealthInfo } from './health.js';
+import { TimeoutError } from 'puppeteer';
 
-var SAFE_ERROR = false;
+const WORKER_TYPE = process.env.WORKER_TYPE;
+const WORKER_ID = process.env.WORKER_ID;
+const SUPPORTED_LISTENERS = process.env.SUPPORTED_LISTENERS
+const PROXY = process.env.PROXY;
+
 
 // @ts-ignore
 console.logCopy = console.log.bind(console);
@@ -136,7 +141,7 @@ const auth2 = {
 }
 
 
-const create_browser_task = async (page, c, data) => {
+const create_browser_task = async (page, c, data, er) => {
     const u = data.username;
     const p = data.password;
     const f = data.fg_id;
@@ -145,15 +150,30 @@ const create_browser_task = async (page, c, data) => {
     const {windowId} = await session.send('Browser.getWindowForTarget');
     await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
 
-    // await page.setViewport({
-    //     width: 1920,
-    //     height: 1080
-    // });
+    await page.setViewport({
+        width: 1920,
+        height: 1080
+    });
+    
     console.log(c + ' loading home page');
-    await page.goto(
-        getHomePage(data.country, c),
-        {waitUntil: 'networkidle0'}
-    ).catch(_ => {});
+    await Promise.all([
+        page.goto(
+            getHomePage(data.country, c),
+            {waitUntil: 'networkidle0'}
+        ).catch(_ => {}),
+
+        page.waitForResponse(async (response) => {
+            const url = getHomePage(data.country, c);
+            if (await response.url() == url && [403,429].includes(await response.status())) {
+                console.warn(c+": IP potentially blocked by cf WAF");
+                await setHealthInfo(c, 403);
+                // change_proxy()
+            } else if (await response.url() == url && await response.ok()) {
+                console.log(c+": IP passed");
+                return true
+            }
+        })
+    ]);
 
     await page.realCursor.moveTo(await getRandomPagePoint(page));
     await sleep(2331);
@@ -187,136 +207,88 @@ const create_browser_task = async (page, c, data) => {
     await page.realClick("#kc-login", {hesitate: getRndInteger(234, 456), moveDelay: getRndInteger(86, 121)});
     console.log(c+": Login attempted, waiting for cf hops to finish");
 
-    if (data.country == "fr") {
-        // wait for cf hops
-        await page.waitForResponse(async (response) => {
-            console.log("lis", response.url())
-            // cf does a few hops, and we want to make sure we are in the requested page
-            const url = "https://fr.tlscontact.com/";
-            if (await response.url() == url && await response.status() === 200) {
-                console.log(c+": cf hopping over. init login procedure")
-                await sleep(2000)
-                return true;
-            }
-        });
-    } else {
-        // todo
-        await sleep(5000)
-    }
+    // wait for cf hops
+    await page.waitForResponse(async (response) => {
+        // cf does a few hops, and we want to make sure we are in the requested page
+        const url = cfHopRq2(data.country);
+        if (await response.url() == url && await response.status() === 200) {
+            console.log(c+": cf hopping over. init login procedure")
+            await sleep(2000)
+            return true;
+        }
+    });
     await sleep(getRndInteger(1500, 2000));
     console.log(c+": Login procedure finished")
     var requests = new Map()
+    var block_count = new Map()
 
-    if (data.country == "fr") {
-        console.log(c+": loading appointment page")
-        await page.setRequestInterception(true);
-        await page.on('requestfinished', async (request) => {
-            if (!request.url().endsWith('Stage=appointment')){ return }
-            const response = await request.response();
-            console.log(c+ ": "+ response.url() + " " + request.redirectChain().length + " " + await response.status(), await response.statusText())
-            try {
-                if ([403,429].includes(await response.status())) {
-                    console.warn(c+": possibly blocked by cloudflare WAF")
-                }
-                if (request.redirectChain().length === 0 && response.ok()) {
-                    try {
-                        const appType = new URL(response.url()).searchParams.get("appointmentType");
-                        console.log(c+": Extracted " + appType)
-                        //requests.set(appType, await response.json())
-                        await sleep(250);  // we dont wanna stress internal api
-                        await axios.post(
-                            `http://localhost:8000/internal/lazyUpdate/${f}/${appType}/${c}`,
-                            await response.json(),
-                            {
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                }
-                            }
-                        )
-                    } catch (e) {
-                        console.log(c+": encountered error: " + await response.text() +  " "+ e.toString());
-                        captureException(e);
-                    }
-                }
-            }catch (err) { console.log(err + '\n\n' + request.toString()); captureException(err)}
-        });
-
-        await page.on('request', request => {
-            request.continue();
-        });
-        await page.goto(apPage(data.country)+c+"/"+f);
-        console.log(c+"loaded appointment page");
-    }
-    console.log(c+ ": starting extraction procedure...");
-    var reloadCount = 0;
-    var maxRC = data.country == "fr" ? 15000 : getRndInteger(4,7);
-    while (true) {
-       
-        if (data.country != "fr") {
-            console.log(c+": Extracting normal");
-            await Promise.all([
-                page.goto(tableC1(data.country, c, f)),
-                page.waitForNavigation({waitUntil: 'networkidle0'}),
-            ])
-
-            requests.set("normal", await extractJSON(page));
-
-            console.log(c+": Extracting prime time");
-            await Promise.all([
-                page.goto(tableC2(data.country, c, f)),
-                page.waitForNavigation({waitUntil: 'networkidle0'}),
-            ])
-
-            requests.set("primetime", await extractJSON(page));
-
-            console.log(c+": Extracting prime time weekend");
-            await Promise.all([
-                page.goto(tableC3(data.country, c, f)),
-                page.waitForNavigation({waitUntil: 'networkidle0'}),
-            ])
-
-            requests.set("primetime weekend", await extractJSON(page));
-
-
-            if (requests.size < 3) {
-                console.log(c+": waiting for table requests");
-                await page.waitForResponse(async (response) => {
-                    return response.url().includes("prime")
-                })
-                await waitTillHTMLRendered(page, c);
-            }
-        
-            if (requests.size < 3) {
-                console.log(c+": Expected 3 tables, got " + requests.size + " data=" + Array.from(requests).toString() + ", ignoring event");
-            } else {
-                console.log(c+": sending slot data to internal api...")
-                // const status = await axios.post(
-                //     `http://backend:8000/internal/slotUpdate/${data.country}/${c}`, {
-                //         normal: requests.get('normal'),
-                //         prime_time: requests.get('primetime'),
-                //         prime_time_weekend: requests.get('primetime weekend'),
-                //     },
-                //     {
-                //         headers: {
-                //             'Content-Type': 'application/json',
-                //         }
-                //     }
-                //     );
-                console.log("pri", requests.get("primetime").toString());
-                console.log("pw", requests.get("primetime weekend").toString());
-                if (200 !== 200) {
-                    console.warn(c + ": internal api returned unexpected status.")
+    console.log(c+": loading appointment page")
+    await page.setRequestInterception(true);
+    await page.on('requestfinished', async (request) => {
+        if (!request.url().endsWith('Stage=appointment')){ return }
+        const response = await request.response();
+        console.log(c+ ": "+ response.url() + " " + request.redirectChain().length + " " + await response.status(), await response.statusText())
+        try {
+            if ([403,429].includes(await response.status())) {
+                console.warn(c+": possibly blocked by cloudflare WAF")
+                if (block_count.has(f)) {
+                    var val = block_count.get(f);
+                    block_count.set(f, val++);
                 } else {
-                    console.log(c+": successfully posted updated slot data to internal api")
+                    block_count.set(f, 1)
+                }
+                setHealthInfo(c, 403);
+            }
+            if (request.redirectChain().length === 0 && response.ok()) {
+                if (block_count.delete(f) || er) await setHealthInfo(c, 200);
+                try {
+                    const appType = new URL(response.url()).searchParams.get("appointmentType");
+                    console.log(c+": Extracted " + appType)
+                    await sleep(250);  // we dont wanna stress internal api
+                    await axios.post(
+                        `http://backend:8000/internal/lazyUpdate/${f}/${appType}/${c}`,
+                        await response.json(),
+                        {
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        }
+                    )
+                } catch (e) {
+                    await setHealthInfo(c, 500);
+                    console.log(c+": encountered error: " + await response.text() +  " "+ e.toString());
+                    captureException(e);
                 }
             }
-        }
+        }catch (err) { await setHealthInfo(c, 500); console.log(err + '\n\n' + request.toString()); captureException(err)}
+    });
 
+    await page.on('request', request => {
+        request.continue();
+    });
+    await page.goto(apPage(data.country)+c+"/"+f);
+    console.log(c+": loaded appointment page");
+
+    var reloadCount = 0;
+    var maxRC = 100;
+    while (true) {
+        await page.realCursor.moveTo(await getRandomPagePoint(page));
         console.log(c + " sleeping...")
-        await sleep(1000 * 60 * 5);
+
+        if (block_count.has(f)) {
+            if (block_count.get(f) < 6) {
+                await sleep(1000 * 5);
+            } else {
+                throw "IP/Acc is blocked by WAF"
+            }
+        } else {
+            await sleep(1000 * 60 * 5);
+        }
+        
         requests.clear();
         reloadCount++;
-        if (data.country != "fr") console.log(c+': reload count: ' + reloadCount, "out of ", maxRC);
+        
+        console.log(c+': reload count: ' + reloadCount, "out of ", maxRC);
         if (reloadCount >= maxRC) {
             throw "reload";
         }
@@ -331,6 +303,7 @@ const create_browser_task = async (page, c, data) => {
 async function b_wrapper(_, c, data, delay) {
     var retry = 0
     var err = false;
+    var is_failed_restart = false;
     // todo: redis
     while (retry <= 3) {
         const { browser, page } = await connect({
@@ -348,21 +321,26 @@ async function b_wrapper(_, c, data, delay) {
             },
             disableXvfb: false,
             ignoreAllFlags: false,
-            proxy: data.country != "fr" ? null : {
-                host: "localhost",
-                port: 8765,
+            proxy: PROXY == null ? null : {
+                host: PROXY,
+                port: 8888,
             }
         })
-        await sleep(err ? 60 * 10 * 1000 : delay);
+        await sleep(err ? 60 * 1 * 1000 : delay);
         try {
             page.setDefaultTimeout(60 * 1000);
             err = false;
-            await create_browser_task(page, c, data);
+            await setHealthInfo(c, 102);
+            await create_browser_task(page, c, data, is_failed_restart);
+            is_failed_restart = true;
         } catch (e) {
             if (e == 'reload') {
                 console.log(c+": Scheduled reload in progress...");
+                is_failed_restart = false;
             } else {
                 console.log(c+": Encountered error, initiating restart procedure...")
+                if (e instanceof TimeoutError) await setHealthInfo(c, 408);
+                else await setHealthInfo(c, 500);
                 try {
                     // opt telemetry
                     const data = await page.screenshot({type: 'webp', quality: 50, 'path': `error_${c}.webp`});
@@ -373,7 +351,9 @@ async function b_wrapper(_, c, data, delay) {
                 } catch (e) { console.log("failed to capture, telemetry", e); }
                 captureException(e)
                 console.log(e);
-                err = true;
+                if (data.country == "fr") {
+                    err = true;
+                }
             }
             // retry++; failsafe
             browser.close()
@@ -383,21 +363,17 @@ async function b_wrapper(_, c, data, delay) {
 
 async function bg_task_tls_adv() {
 
-    // const { browser } = await connect({
-    //     headless: false,
-    //     args: [
-    //         "--start-maximized",
-    //         "--disable-backgrounding-occluded-windows",
-    //         "--disable-background-timer-throttling",
-    //         "--disable-renderer-backgrounding"
-    //     ],
-    //     customConfig: {},
-    //     turnstile: true,
-    //     connectOption: {},
-    //     disableXvfb: false,
-    //     ignoreAllFlags: false,
-    //     devTools: true,
-    // })
+    await axios.post(
+        "http://backend:8000/internal/getListenerData",
+        {
+            "worker_type": WORKER_TYPE,
+            "worker_id": WORKER_ID,
+            "listeners": SUPPORTED_LISTENERS.split(','),
+        },
+        {
+            timeout: null,
+        }
+    )
 
     const delayIncr = 1000 * 60;  // 1 min delay between listeners, we dont wanna stress out
     let delay = 0;

@@ -79,7 +79,6 @@ async def lazy_update(
     ):
     await logger.debug(f"Received lazy load request for {center}::{type} with uid:{uid}", data_count=len(data))
     country = extract_center_code(center)
-    assert country == "fr"  # lazy update at the moment supports france only
     if not await deps_inj_cache.exists(str(uid)):
         await deps_inj_cache.json().set(str(uid), Path.root_path(), {})
         await deps_inj_cache.expire(str(uid), timedelta(seconds=120))
@@ -88,7 +87,8 @@ async def lazy_update(
     # check if data is complete?
     cdata: dict[str, dict[str, dict[str, int]]] = await deps_inj_cache.json().get(uid)
     await logger.debug(cdata)
-    if len(cdata.keys()) < 4:
+    fc = 4 if country in ["fr"] else 3
+    if len(cdata.keys()) < fc:
         return responses.Response(status_code=status.HTTP_200_OK)
     await logger.debug(f"Lazy load data of {center}::{type}::{uid} is complete, initiating further procedure")
     
