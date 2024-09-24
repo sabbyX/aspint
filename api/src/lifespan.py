@@ -6,7 +6,9 @@ from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi import FastAPI
 
+
 from .model import __beanie_models__
+from .cache import get_cache
 
 logger = structlog.stdlib.get_logger()
 
@@ -25,5 +27,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[FastAPI, None]:
         )
 
     yield
-
     # shutdown
+    
+    redis = await get_cache()
+    for k in await redis.scan_iter("worker_*"):
+        await redis.delete(k)
+

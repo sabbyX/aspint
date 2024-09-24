@@ -1,6 +1,12 @@
-from fastapi import APIRouter, responses
+from datetime import timedelta
+from fastapi import APIRouter, Depends, responses, status
 from httpx import AsyncClient, TimeoutException
+
+from redis.asyncio import Redis
 import structlog
+
+from ..cache import get_cache
+from ..model import ListenerHealthData
 
 logger = structlog.stdlib.get_logger()
 
@@ -40,3 +46,15 @@ async def __int_eval_status(endpoint):
         ipdata = ""
     
     return {"status": status, "ipdata": ipdata.json()}
+
+
+@router.post("/setWorkerHealth")
+async def set_worker_health_info(data: ListenerHealthData, dep_inj_cache: Redis = Depends(get_cache)):
+    key = f"health_{data.worker_id}:{data.center}"
+    if not await dep_inj_cache.exists(key) or await dep_inj_cache.get(key) != data.health_code:
+        await data.save()
+        await dep_inj_cache.set(key, data.health_code)
+        await dep_inj_cache.expire(key, timedelta(hours=12))
+
+    return responses.Response(status_code=status.HTTP_200_OK)
+

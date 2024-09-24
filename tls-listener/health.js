@@ -2,6 +2,7 @@ import axios from "axios";
 
 const HEALTH_API_ENDPOINT = "http://backend:8000/health/setWorkerHealth/";
 const WORKER_TYPE = process.env.WORKER_TYPE;
+const LISTENERS = process.env.LISTENERS;
 // spec:
 // 2 WORKER_TYPE (s)
 // - ASSISTIVE
@@ -14,13 +15,19 @@ const WORKER_ID = process.env.WORKER_ID;
 // 408 TIMEOUT
 // 500 OTHER ERRORS
 export async function setHealthInfo(center, code) {
-    await axios.post(
-        HEALTH_API_ENDPOINT,
-        {
-            "center": center,
-            "health_code": code,
-            "worker_type": WORKER_TYPE,
-            "worker_id": WORKER_ID, 
-        }
-    )
+    try {
+        await axios.post(
+            HEALTH_API_ENDPOINT,
+            {
+                "center": center,
+                "health_code": code,
+                "worker_type": WORKER_TYPE,
+                "worker_id": WORKER_ID,
+                "listeners": LISTENERS,
+            }
+        )
+    }
+    catch (e) {
+        console.log("failed to post health check:: error:", e);
+    }
 }

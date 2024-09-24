@@ -94,11 +94,17 @@ services:
 
   backend:
     build: ./api/
-    image: ghcr.io/sabbyx/aspint-backend:latest
     develop:
       watch:
         - action: rebuild
           path: ./api/src
+    healthcheck:
+      test: curl --include --request GET http://0.0.0.0:8000/health || exit 1
+      retries: 5
+      interval: 5m
+      timeout: 5s
+      start_period: 15s
+      start_interval: 5s
     ports:
       - "8000:8000"
     depends_on:
@@ -139,11 +145,45 @@ services:
     image: redis/redis-stack
     restart: always
 
-  tls-adv-listener:
+  tls-common-1:
     build:
       context: tls-listener/
       dockerfile: Dockerfile
-    image: ghcr.io/sabbyx/aspint-tls-adv-lister:latest
+    environment:
+      WORKER_ID: common-1
+      WORKER_TYPE: INDE
+      SUPPORTED_LISTENERS: gbLON2de,gbMNC2de,gbEDI2de,gbLON2be,gbMNC2be,gbEDI2be,gbLON2ch,gbEDI2ch,gbMNC2ch
     shm_size: 2gb
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+
+  tls-fr-1:
+    build:
+      context: tls-listener/
+      dockerfile: Dockerfile
+    environment:
+      WORKER_ID: fr-1
+      WORKER_TYPE: ASSISTIVE
+      SUPPORTED_LISTENERS: gbLON2fr,gbMNC2fr,gbEDI2fr
+      PROXY: proxy-1
+    shm_size: 2gb
+    depends_on:
+      backend:
+        condition: service_healthy
+  
+  tls-fr-2:
+    build:
+      context: tls-listener/
+      dockerfile: Dockerfile
+    environment:
+      WORKER_ID: fr-2
+      WORKER_TYPE: ASSISTIVE
+      SUPPORTED_LISTENERS: gbLON2fr-1,gbMNC2fr-1,gbEDI2fr-1
+      PROXY: proxy-2
+    shm_size: 2gb
+    depends_on:
+      backend:
+        condition: service_healthy
+
+

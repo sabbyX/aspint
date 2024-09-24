@@ -1,10 +1,15 @@
 FROM python:3.12-slim-bullseye
-LABEL org.opencontainers.image.source=https://github.com/sabbyx/aspint
 
 WORKDIR /usr/src/app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install --with-deps
+
+RUN apt-get update && \
+    apt-get upgrade --assume-yes && \
+    # cURL is necessary to invoke the "healthcheck" function using Docker
+    apt-get install curl --assume-yes && \
+    rm --recursive --force /var/lib/apt/lists/*
 
 COPY . .
 
