@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const HEALTH_API_ENDPOINT = "http://backend:8000/health/setWorkerHealth/";
+const HEALTH_API_ENDPOINT = "http://backend:8000/health/setWorkerHealth";
 const WORKER_TYPE = process.env.WORKER_TYPE;
 const LISTENERS = process.env.LISTENERS;
 // spec:

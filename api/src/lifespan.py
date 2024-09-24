@@ -30,6 +30,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[FastAPI, None]:
     # shutdown
     
     redis = await get_cache()
-    for k in await redis.scan_iter("worker_*"):
+    async for k in redis.scan_iter("worker_*"):
         await redis.delete(k)
 
