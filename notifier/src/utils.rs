@@ -171,6 +171,8 @@ pub fn compute_diff<'a>(new: &'a AptTable, old: &'a AptTable) -> (Option<AptTabl
                     added.insert(key.clone(), updated_added);
                 }
             }
+        } else {
+            added.insert(key.clone(), value.clone());
         }
     }
 
@@ -305,6 +307,23 @@ mod tests {
         ];
         old_slot.insert("01-01-0001".into(), IndexSet::from(slot.clone()));
         old_slot.insert("02-01-0001".into(), IndexSet::from(slot.clone()));
+
+        let slot2 = [
+            Slot { td: "10:30".into(), _type: "normal".into() },
+            Slot { td: "11:30".into(), _type: "normal".into() },
+            Slot { td: "14:30".into(), _type: "normal".into() },
+        ];
+        
+        let mut new_slot: AptTable = IndexMap::new();
+        new_slot.insert("02-01-0001".into(), IndexSet::from(slot2));
+
+        let (added, removed) = compute_diff(&new_slot, &old_slot);
+        println!("a: {:?}, b: {:?}", added, removed);
+    }
+
+    #[test]
+    fn test_diff2() {
+        let mut old_slot: AptTable = IndexMap::new();
 
         let slot2 = [
             Slot { td: "10:30".into(), _type: "normal".into() },

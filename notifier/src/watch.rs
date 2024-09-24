@@ -32,7 +32,6 @@ pub async fn poll_changes(client: &Client, bot: Bot) -> Result<(), Error> {
             let docs: Vec<AppointmentTable> = older_doc_cursor.try_collect().await?;
             if docs.len() > 2 {
                 error!("{}: unexpected database structure, expected 2, but got {}", &document.center, docs.len());
-                continue;
             } else if docs.len() < 2 && !&docs[0].slots_available.is_empty() {
                 debug!("{}: Found new table, with no twin to compare, sending whole table...", &document.center);
                 msg_builder.push_str(
