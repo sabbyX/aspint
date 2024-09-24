@@ -7,7 +7,7 @@ const { getRandomPagePoint, installMouseHelper } = pkg;
 import axios from "axios";
 import {captureException} from "@sentry/node";
 import * as Sentry from "@sentry/node";
-import { extractJSON, waitTillHTMLRendered, sleep, getRndInteger } from './utils.js';
+import { extractJSON, waitTillHTMLRendered, sleep, getRndInteger, allowAssistiveWorker, isAssistLoadMaster, checkAssistLoad, delayedReload } from './utils.js';
 import { setHealthInfo } from './health.js';
 import { TimeoutError } from 'puppeteer';
 
@@ -40,105 +40,6 @@ console.log = function()
         }
     }
 };
-
-const auth0 = {
-    'gbLON2fr': {
-        'username': 'cobeve6079@ofionk.com',
-        'password': 'Test@123',
-        'fg_id': 16887585,
-        'country': 'fr'
-    }
-}
-
-const auth1 = {
-    'gbLON2fr': {
-        'username': 'niniv69394@cetnob.com',
-        'password': 'Test@123',
-        'fg_id': 16902753,
-        'country': 'fr'
-    }
-}
-
-const auth = {
-    'gbLON2fr': {
-        'username': 'tidele4204@ofionk.com',
-        'password': 'Test@123',
-        'fg_id': 16898654,
-        'country': 'fr'
-    }
-}
-
-const auth4 = {
-    'gbLON2fr': {
-        'username': 'peleba6455@cetnob.com',
-        'password': 'Test@123',
-        'fg_id': 16892730,
-        'country': 'fr'
-    }
-}
-
-const auth2 = {
-    // 1/3/25
-    'gbLON2de': {
-        'username': 'aspint.de.lon.1@proton.me',
-        'password': 'Test@123',
-        'fg_id': 2687578,
-        'country': 'de',
-    },
-    'gbMNC2de': {
-        'username': 'aspint.de.mnc@proton.me',
-        'password': 'Test@123',
-        'fg_id': 2692445,
-        'country': 'de'
-    },
-    'gbEDI2de': {
-        'username': 'aspint.de.edi@proton.me',
-        'password': 'Test@123',
-        'fg_id': 2692471,
-        'country': 'de',
-    },
-    'gbLON2be': {
-        'username': 'sopadam438@ploncy.com',
-        'password': 'Test@123',
-        'fg_id': 1194619,
-        'country': 'be'
-    },
-    'gbMNC2be': {
-        'username': 'aspint.be.mnc@proton.me',
-        'password': 'Test@123',
-        'fg_id': 1195388,
-        'country': 'be',
-    },
-
-    // 1/3/25
-    'gbEDI2be': {
-        'username': 'aspint.be.edi@proton.me',
-        'password': 'Test@123',
-        'fg_id': 1200394,
-        'country': 'be'
-    },
-
-    // 1/3/25
-    'gbLON2ch': {
-        'username': 'nogaf50833@hapied.com',
-        'password': 'Test@123',
-        'fg_id': 1201348,
-        'country': 'ch',
-    },
-    // 1/3/25
-    'gbEDI2ch': {
-        'username': 'nogaf50833@hapied.com',
-        'password': 'Test@123',
-        'fg_id': 1202124,
-        'country': 'ch',
-    },
-    'gbMNC2ch': {
-        'username': 'nogaf50833@hapied.com',
-        'password': 'Test@123',
-        'fg_id': 1202133,
-        'country': 'ch',
-    },
-}
 
 
 const create_browser_task = async (page, c, data, er) => {
@@ -220,7 +121,6 @@ const create_browser_task = async (page, c, data, er) => {
     await sleep(getRndInteger(1500, 2000));
     console.log(c+": Login procedure finished")
     var requests = new Map()
-    var block_count = new Map()
 
     console.log(c+": loading appointment page")
     await page.setRequestInterception(true);
@@ -231,20 +131,15 @@ const create_browser_task = async (page, c, data, er) => {
         try {
             if ([403,429].includes(await response.status())) {
                 console.warn(c+": possibly blocked by cloudflare WAF")
-                if (block_count.has(f)) {
-                    var val = block_count.get(f);
-                    block_count.set(f, val++);
-                } else {
-                    block_count.set(f, 1)
-                }
                 setHealthInfo(c, 403);
-            }
+                // delayedReload(page) todo
+            } else if (!response.ok()) setHealthInfo(c, 500);
             if (request.redirectChain().length === 0 && response.ok()) {
-                if (block_count.delete(f) || er) await setHealthInfo(c, 200);
+                await setHealthInfo(c, 200);
                 try {
                     const appType = new URL(response.url()).searchParams.get("appointmentType");
                     console.log(c+": Extracted " + appType)
-                    await sleep(250);  // we dont wanna stress internal api
+                    await sleep(500);  // we dont wanna stress internal api
                     await axios.post(
                         `http://backend:8000/internal/lazyUpdate/${f}/${appType}/${c}`,
                         await response.json(),
@@ -275,15 +170,8 @@ const create_browser_task = async (page, c, data, er) => {
         await page.realCursor.moveTo(await getRandomPagePoint(page));
         console.log(c + " sleeping...")
 
-        if (block_count.has(f)) {
-            if (block_count.get(f) < 6) {
-                await sleep(1000 * 5);
-            } else {
-                throw "IP/Acc is blocked by WAF"
-            }
-        } else {
-            await sleep(1000 * 60 * 5);
-        }
+        if (WORKER_TYPE == "ASSISTIVE" && isAssistLoadMaster()) allowAssistiveWorker(c, 60000);
+        await sleep(1000 * 60 * 4);
         
         requests.clear();
         reloadCount++;
@@ -294,9 +182,7 @@ const create_browser_task = async (page, c, data, er) => {
         }
         const {windowId} = await session.send('Browser.getWindowForTarget');
         await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
-        if (data.country == "fr") {
-            await page.reload()
-        }
+        await page.reload();
     }
 }
 
@@ -304,8 +190,20 @@ async function b_wrapper(_, c, data, delay) {
     var retry = 0
     var err = false;
     var is_failed_restart = false;
+
     // todo: redis
     while (retry <= 3) {
+
+        if (WORKER_TYPE == "ASSISTIVE" && !isAssistLoadMaster()) {
+            console.log(c+": waiting for assist loading");
+            try {
+                await checkAssistLoad(c);
+            } catch (e) {
+                console.log(c+": Failed to assist load, Error=", e);
+            }
+            console.log(c+": assist load greenlit, proceeding");
+        }
+
         const { browser, page } = await connect({
             headless: false,
             args: [
@@ -321,7 +219,8 @@ async function b_wrapper(_, c, data, delay) {
             },
             disableXvfb: false,
             ignoreAllFlags: false,
-            proxy: PROXY == null ? null : {
+            // @ts-ignore
+            proxy: PROXY == null ? {} : {
                 host: PROXY,
                 port: 8888,
             }
@@ -363,7 +262,8 @@ async function b_wrapper(_, c, data, delay) {
 
 async function bg_task_tls_adv() {
 
-    await axios.post(
+    console.log(WORKER_ID, "waiting for listener data")
+    var resp = await axios.post(
         "http://backend:8000/internal/getListenerData",
         {
             "worker_type": WORKER_TYPE,
@@ -371,14 +271,18 @@ async function bg_task_tls_adv() {
             "listeners": SUPPORTED_LISTENERS.split(','),
         },
         {
-            timeout: null,
+            timeout: 0,  // dont timeout
         }
     )
-
+    var data = resp.data;
+    console.log(WORKER_ID, "Recieved listener data");
+    console.log("Worker Type: ", WORKER_TYPE);
+    console.log("Listeners: ", SUPPORTED_LISTENERS);
+    console.log("Proxy: ", PROXY);
     const delayIncr = 1000 * 60;  // 1 min delay between listeners, we dont wanna stress out
     let delay = 0;
-    for (const center in auth) {
-        b_wrapper(null, center, auth[center], delay);
+    for (const center in data) {
+        b_wrapper(null, center, data[center], delay);
         delay += delayIncr;
     }
 }

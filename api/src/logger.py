@@ -5,6 +5,9 @@ import structlog
 
 from structlog_sentry import SentryProcessor
 
+logging.getLogger('pymongo').setLevel(logging.ERROR)
+
+
 
 def configure_logger(enable_json_logs: bool = False):
     timestamper = structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S")

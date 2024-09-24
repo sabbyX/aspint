@@ -1,3 +1,4 @@
+import axios from "axios";
 import { Page } from "puppeteer";
 
 /**
@@ -29,7 +30,7 @@ export const waitTillHTMLRendered = async (page, c, timeout = 30000) => {
     let lastHTMLSize = 0;
     let checkCounts = 1;
     let countStableSizeIterations = 0;
-    const minStableSizeIterations = 3;
+    const minStableSizeIterations = 10;
 
     while(checkCounts++ <= maxChecks){
         let html = await page.content();
@@ -56,4 +57,53 @@ export function getRndInteger(min, max) {
 
 export function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
+export async function allowAssistiveWorker(c, t) {
+    await sleep(t);
+    var resp = await axios.post(
+        "http://backend:8000/internal/allowAssistiveWorkers",
+        {
+            "center": c,
+            "worker_id": process.env.WORKER_ID,
+            "worker_type": process.env.WORKER_TYPE,
+        }
+    );
+    if (resp.status == 200) 
+        console.log(process.env.WORKER_ID+": assist worker start command success");
+    else
+        console.warn(process.env.WORKER_ID+": Failed to start assist worker", resp.statusText);
+}
+
+
+export async function checkAssistLoad(c) {
+    const max_tc = 2000
+    var c_tc = 0;
+    while (true) {
+        var resp = await axios.post(
+            "http://backend:8000/internal/checkAssistLoad",
+            {
+                "center": c,
+                "worker_id": process.env.WORKER_ID,
+                "worker_type": process.env.WORKER_TYPE,
+            }
+        )
+        if (resp.data.status) break;
+
+        c_tc++;
+        if (c_tc >= max_tc) break;
+
+        await sleep(5000);
+    }
+    return true;
+}
+
+export function isAssistLoadMaster() {
+    return ((process.env.WORKER_ID).split('-')[1]) == "1"
+}
+
+export async function delayedReload(page) {
+    await sleep(10000);
+    await page.reload()
 }

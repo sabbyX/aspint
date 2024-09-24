@@ -15,3 +15,7 @@ main_router.include_router(health_router)
 @main_router.get('/')
 def home():
     return {'message': 'hello world'}
+
+@main_router.get("/health")
+def health_check():
+    return {"status": "healthy"}

@@ -1,5 +1,4 @@
 FROM node:latest
-LABEL org.opencontainers.image.source=https://github.com/sabbyx/aspint
 RUN npm config set registry https://registry.npmjs.org/
 RUN npm cache clean --force
 # Install necessary dependencies for running Chrome

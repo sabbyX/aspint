@@ -1,3 +1,4 @@
+import asyncio
 from datetime import timedelta
 import pymongo
 from redis.asyncio import Redis
@@ -6,8 +7,9 @@ from fastapi import APIRouter, Depends, responses, status
 import structlog
 
 from src.cache import get_cache
+from src.config import auth_data
 
-from ..model import TlsAdvListerSlotUpdate, AppointmentTable
+from ..model import TlsAdvListerSlotUpdate, AppointmentTable, ListenerData
 from ..utils import extract_center_code, serialize_stype, sort_feed
 from ..tlshelper import filter_slot
 
@@ -16,9 +18,43 @@ logger = structlog.stdlib.get_logger()
 router = APIRouter(prefix="/internal")
 
 
-@router.get('/getSlotListenerData')
-async def slot_listener_data():
-    pass
+@router.post('/getListenerData')
+async def get_listener_data(data: ListenerData, dep_inj_cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
+    assert data.listeners is not None
+    resp = {}
+
+    def clean(center: str):
+        if data.worker_type == "ASSISTIVE" and "-" in center:
+            return center.split('-')[0]
+        return center
+
+    for center in data.listeners:
+        cdata = auth_data.get(center, None)
+        if cdata is not None:
+            resp[clean(center)] = cdata
+    
+    return responses.JSONResponse(resp)
+
+
+def __int_c_k(wid, c):
+    return f"worker_{wid.split('-')[0]}:{c}"
+
+@router.post('/allowAssistiveWorkers')
+async def allow_assistive_worker(data: ListenerData, deps_inj_cache: Redis = Depends(get_cache)) -> responses.Response:
+    assert data.worker_type == "ASSISTIVE"
+
+    exists = await deps_inj_cache.exists(__int_c_k(data.worker_id, data.center))
+    if not exists:
+        await deps_inj_cache.set(__int_c_k(data.worker_id, data.center), 1)
+        await deps_inj_cache.expire(__int_c_k(data.worker_id, data.center), timedelta(seconds=30))
+
+    return responses.Response(status_code=status.HTTP_200_OK)
+    
+
+@router.post('/checkAssistLoad')
+async def check_assist_load(data: ListenerData, cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
+    exists = await cache.exists(__int_c_k(data.worker_id, data.center))
+    return responses.JSONResponse({'status': exists})
 
 
 @router.post("/slotUpdate/{country}/{center}")
@@ -86,9 +122,8 @@ async def lazy_update(
 
     # check if data is complete?
     cdata: dict[str, dict[str, dict[str, int]]] = await deps_inj_cache.json().get(uid)
-    await logger.debug(cdata)
     fc = 4 if country in ["fr"] else 3
-    if len(cdata.keys()) < fc:
+    if len(cdata.keys()) < fc or not await deps_inj_cache.exists(str(uid)):
         return responses.Response(status_code=status.HTTP_200_OK)
     await logger.debug(f"Lazy load data of {center}::{type}::{uid} is complete, initiating further procedure")
     
@@ -115,7 +150,7 @@ async def lazy_update(
             (AppointmentTable.id, pymongo.DESCENDING)
         ]
     ).to_list()
-    await logger.debug("found slots at database", count=len(res), db_found=res)
+    await logger.debug("found slots at database", count=len(res))
     if len(res) > 1:
         await res[1].delete()
     await doc.save()
