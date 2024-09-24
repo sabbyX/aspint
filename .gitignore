@@ -39,3 +39,5 @@ next-env.d.ts
 /.vscode/
 
 /db/
+
+gl/servers.json
