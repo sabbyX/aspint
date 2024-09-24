@@ -1,9 +1,10 @@
 import asyncio
 from datetime import timedelta
+import random
 import pymongo
 from redis.asyncio import Redis
 from redis.commands.json.path import Path
-from fastapi import APIRouter, Depends, responses, status
+from fastapi import APIRouter, Depends, Request, responses, status
 import structlog
 
 from src.cache import get_cache
@@ -46,7 +47,7 @@ async def allow_assistive_worker(data: ListenerData, deps_inj_cache: Redis = Dep
     exists = await deps_inj_cache.exists(__int_c_k(data.worker_id, data.center))
     if not exists:
         await deps_inj_cache.set(__int_c_k(data.worker_id, data.center), 1)
-        await deps_inj_cache.expire(__int_c_k(data.worker_id, data.center), timedelta(seconds=30))
+        await deps_inj_cache.expire(__int_c_k(data.worker_id, data.center), timedelta(seconds=60))
 
     return responses.Response(status_code=status.HTTP_200_OK)
     
@@ -54,6 +55,8 @@ async def allow_assistive_worker(data: ListenerData, deps_inj_cache: Redis = Dep
 @router.post('/checkAssistLoad')
 async def check_assist_load(data: ListenerData, cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
     exists = await cache.exists(__int_c_k(data.worker_id, data.center))
+    if exists:
+        await cache.delete(__int_c_k(data.worker_id, data.center))
     return responses.JSONResponse({'status': exists})
 
 
@@ -105,40 +108,25 @@ async def slot_update(country: str, center: str, data: TlsAdvListerSlotUpdate):
     return responses.Response(status_code=status.HTTP_200_OK)
 
 
-@router.post("/lazyUpdate/{uid}/{type}/{center}")
-async def lazy_update(
-    uid: int, 
-    type: str, 
+@router.post("/slotUpdateV2/{center}")
+async def slot_update(
     center: str, 
-    data: dict[str, dict[str, int]],
-    deps_inj_cache: Redis = Depends(get_cache)
+    data: dict[str, dict[str, dict[str, int]]],
     ):
-    await logger.debug(f"Received lazy load request for {center}::{type} with uid:{uid}", data_count=len(data))
+    await logger.debug(f"Received slot update request for {center}", data_count=len(data))
     country = extract_center_code(center)
-    if not await deps_inj_cache.exists(str(uid)):
-        await deps_inj_cache.json().set(str(uid), Path.root_path(), {})
-        await deps_inj_cache.expire(str(uid), timedelta(seconds=120))
-    await deps_inj_cache.json().set(str(uid), '.' + type.replace(' ', '%%'), data)
-
-    # check if data is complete?
-    cdata: dict[str, dict[str, dict[str, int]]] = await deps_inj_cache.json().get(uid)
-    fc = 4 if country in ["fr"] else 3
-    if len(cdata.keys()) < fc or not await deps_inj_cache.exists(str(uid)):
-        return responses.Response(status_code=status.HTTP_200_OK)
-    await logger.debug(f"Lazy load data of {center}::{type}::{uid} is complete, initiating further procedure")
     
-    await deps_inj_cache.json().delete(str(uid))
     feed: dict[str, list[dict[str, str]]] = {}
-    for ty, slots in cdata.items():
+    for ty, slots in data.items():
         ty = ty.replace('%%', ' ')
         for date, val in slots.items():
-            filtered_slots = filter_slot(val, serialize_stype(ty))
+            filtered_slots = filter_slot(val, ty)
             if len(filtered_slots) > 0:
                 if date not in feed:
                     feed[date] = filtered_slots
                 else:
                     feed[date].extend(filtered_slots)
-    
+
     await logger.debug("storing slots into database...")
     doc = AppointmentTable(issuer=country, center=center, slots_available=feed)
     doc.slots_available = sort_feed(doc.slots_available)

@@ -120,7 +120,7 @@ const create_browser_task = async (page, c, data, er) => {
     });
     await sleep(getRndInteger(1500, 2000));
     console.log(c+": Login procedure finished")
-    var requests = new Map()
+    var responses = new Map()
 
     console.log(c+": loading appointment page")
     await page.setRequestInterception(true);
@@ -139,16 +139,22 @@ const create_browser_task = async (page, c, data, er) => {
                 try {
                     const appType = new URL(response.url()).searchParams.get("appointmentType");
                     console.log(c+": Extracted " + appType)
-                    await sleep(500);  // we dont wanna stress internal api
-                    await axios.post(
-                        `http://backend:8000/internal/lazyUpdate/${f}/${appType}/${c}`,
-                        await response.json(),
-                        {
-                            headers: {
-                                'Content-Type': 'application/json',
+                    responses.set(appType, await response.json())
+
+                    if (responses.size == (["fr"].includes(data.country) ? 4 : 3)) {
+                        console.log(c+": posting to internal api");
+                        await axios.post(
+                            `http://backend:8000/internal/slotUpdateV2/${c}`,
+                            responses,
+                            {
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                }
                             }
-                        }
-                    )
+                        )
+                        responses.clear()
+                    }
+                    
                 } catch (e) {
                     await setHealthInfo(c, 500);
                     console.log(c+": encountered error: " + await response.text() +  " "+ e.toString());
@@ -170,10 +176,9 @@ const create_browser_task = async (page, c, data, er) => {
         await page.realCursor.moveTo(await getRandomPagePoint(page));
         console.log(c + " sleeping...")
 
-        if (WORKER_TYPE == "ASSISTIVE" && isAssistLoadMaster()) allowAssistiveWorker(c, 60000);
+        if (WORKER_TYPE == "ASSISTIVE" && isAssistLoadMaster()) allowAssistiveWorker(c, 90000);
         await sleep(1000 * 60 * 4);
-        
-        requests.clear();
+
         reloadCount++;
         
         console.log(c+': reload count: ' + reloadCount, "out of ", maxRC);
@@ -182,6 +187,7 @@ const create_browser_task = async (page, c, data, er) => {
         }
         const {windowId} = await session.send('Browser.getWindowForTarget');
         await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
+
         await page.reload();
     }
 }
