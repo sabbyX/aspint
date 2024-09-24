@@ -14,7 +14,6 @@
     "fingerprint-injector": "^2.1.55",
     "puppeteer": "^23.3.0",
     "puppeteer-real-browser": "^1.3.12",
-    "puppeteer-with-fingerprints": "^1.6.3",
     "redis": "^4.7.0"
   }
 }

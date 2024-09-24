@@ -139,11 +139,11 @@ services:
     image: redis/redis-stack
     restart: always
 
-  # tls-adv-listener:
-  #   build:
-  #     context: tls-listener/
-  #     dockerfile: Dockerfile
-  #   image: ghcr.io/sabbyx/aspint-tls-adv-lister:latest
-  #   shm_size: 2gb
-  #   depends_on:
-  #     - backend
+  tls-adv-listener:
+    build:
+      context: tls-listener/
+      dockerfile: Dockerfile
+    image: ghcr.io/sabbyx/aspint-tls-adv-lister:latest
+    shm_size: 2gb
+    depends_on:
+      - backend
