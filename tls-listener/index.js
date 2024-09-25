@@ -1,13 +1,13 @@
-// import './intrument.js';
-import {getHomePage, apPage, cfHopRq, tableC1, tableC2, tableC3, cfHopRq2} from './link.js'
+import './intrument.js';
+import {getHomePage, apPage, cfHopRq, cfHopRq2} from './link.js'
 
 import { connect } from 'puppeteer-real-browser'
 import pkg from 'ghost-cursor';
-const { getRandomPagePoint, installMouseHelper } = pkg;
+const { getRandomPagePoint } = pkg;
 import axios from "axios";
 import {captureException} from "@sentry/node";
 import * as Sentry from "@sentry/node";
-import { extractJSON, waitTillHTMLRendered, sleep, getRndInteger, allowAssistiveWorker, isAssistLoadMaster, checkAssistLoad, delayedReload } from './utils.js';
+import { sleep, getRndInteger, allowAssistiveWorker, isAssistLoadMaster, checkAssistLoad, delayedReload } from './utils.js';
 import { setHealthInfo } from './health.js';
 import { TimeoutError } from 'puppeteer';
 
