@@ -61,9 +61,8 @@ export function sleep(ms) {
 
 
 export async function allowAssistiveWorker(c, t) {
-    await sleep(t);
     var resp = await axios.post(
-        "http://backend:8000/internal/allowAssistiveWorkers",
+        `http://backend:8000/internal/allowAssistiveWorkers/${t}`,
         {
             "center": c,
             "worker_id": process.env.WORKER_ID,
@@ -89,14 +88,15 @@ export async function checkAssistLoad(c) {
                 "worker_type": process.env.WORKER_TYPE,
             }
         )
-        if (resp.data.status) break;
+        if (resp.data.status) {
+            return resp.data.slpt
+        };
 
         c_tc++;
         if (c_tc >= max_tc) break;
 
         await sleep(5000);
     }
-    return true;
 }
 
 export function isAssistLoadMaster() {
@@ -104,6 +104,6 @@ export function isAssistLoadMaster() {
 }
 
 export async function delayedReload(page) {
-    await sleep(10000);
+    await sleep(10 * 1000);
     await page.reload()
 }
