@@ -121,6 +121,7 @@ const create_browser_task = async (page, c, data, er) => {
     await sleep(getRndInteger(1500, 2000));
     console.log(c+": Login procedure finished")
     var responses = new Map()
+    var response_count = 0;
 
     console.log(c+": loading appointment page")
     await page.setRequestInterception(true);
@@ -129,10 +130,15 @@ const create_browser_task = async (page, c, data, er) => {
         const response = await request.response();
         console.log(c+ ": "+ response.url() + " " + request.redirectChain().length + " " + await response.status(), await response.statusText())
         try {
+            response_count++;
             if ([403,429].includes(await response.status())) {
                 console.warn(c+": possibly blocked by cloudflare WAF")
                 setHealthInfo(c, 403);
-                // delayedReload(page) todo
+                if (response_count == (["fr"].includes(data.country) ? 4 : 3) && [403].includes(await response.status())) 
+                {
+                    console.log(c+": CF WAF 403: attempting reload page");
+                    await delayedReload(page);
+                }
             } else if (!response.ok()) setHealthInfo(c, 500);
             if (request.redirectChain().length === 0 && response.ok()) {
                 await setHealthInfo(c, 200);
@@ -161,6 +167,7 @@ const create_browser_task = async (page, c, data, er) => {
                     captureException(e);
                 }
             }
+            if (response_count == (["fr"].includes(data.country) ? 4 : 3)) response_count = 0;
         }catch (err) { await setHealthInfo(c, 500); console.log(err + '\n\n' + request.toString()); captureException(err)}
     });
 
@@ -176,8 +183,14 @@ const create_browser_task = async (page, c, data, er) => {
         await page.realCursor.moveTo(await getRandomPagePoint(page));
         console.log(c + " sleeping...")
 
-        if (WORKER_TYPE == "ASSISTIVE" && isAssistLoadMaster()) allowAssistiveWorker(c, 90000);
-        await sleep(1000 * 60 * 4);
+        if (WORKER_TYPE == "ASSISTIVE" && isAssistLoadMaster()) allowAssistiveWorker(c, reloadCount == 0 ? 90000 : 150000);
+
+        if (WORKER_TYPE == "ASSISTIVE" && !isAssistLoadMaster()) {    
+            console.log(c+": waiting for assist load");
+            var slpty = Number(await checkAssistLoad(c));
+            console.log(c+": greenlit for assist loading, sleep time", slpty)
+            await sleep(slpty)
+        } else await sleep(1000 * 60 * 4);
 
         reloadCount++;
         
@@ -203,7 +216,9 @@ async function b_wrapper(_, c, data, delay) {
         if (WORKER_TYPE == "ASSISTIVE" && !isAssistLoadMaster()) {
             console.log(c+": waiting for assist loading");
             try {
-                await checkAssistLoad(c);
+                var slpt = await checkAssistLoad(c);
+                console.log(c+": assist load, sleep request = ", slpt)
+                await sleep(slpt)
             } catch (e) {
                 console.log(c+": Failed to assist load, Error=", e);
             }
@@ -252,7 +267,8 @@ async function b_wrapper(_, c, data, delay) {
                     Sentry.getCurrentScope().addAttachment({
                         'filename': `error_${c}.webp`,
                         'data': data
-                    });
+                    })
+                    .setExtra("page", await page.content());
                 } catch (e) { console.log("failed to capture, telemetry", e); }
                 captureException(e)
                 console.log(e);
