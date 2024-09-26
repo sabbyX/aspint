@@ -4,11 +4,13 @@ use indexmap::{IndexMap, IndexSet};
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use log::debug;
 use mongodb::bson::doc;
+use serde::Deserialize;
 use teloxide::{prelude::*, types::{InlineKeyboardButton, InlineKeyboardMarkup, Message, ParseMode}, utils::html::bold, Bot};
 
 use crate::{constants::CLIENT, error::Error, model::{AppointmentTable, Slot}};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "lowercase")]
 pub enum SupportedCountries {
     Ch,
     Be,
@@ -323,7 +325,7 @@ mod tests {
 
     #[test]
     fn test_diff2() {
-        let mut old_slot: AptTable = IndexMap::new();
+        let old_slot: AptTable = IndexMap::new();
 
         let slot2 = [
             Slot { td: "10:30".into(), _type: "normal".into() },

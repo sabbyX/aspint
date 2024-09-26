@@ -14,7 +14,7 @@ import { TimeoutError } from 'puppeteer';
 const WORKER_TYPE = process.env.WORKER_TYPE;
 const WORKER_ID = process.env.WORKER_ID;
 const SUPPORTED_LISTENERS = process.env.SUPPORTED_LISTENERS
-const PROXY = process.env.PROXY;
+var PROXY = process.env.PROXY;
 
 
 // @ts-ignore
@@ -105,7 +105,8 @@ const create_browser_task = async (page, c, data, er) => {
     await page.focus("#password");
     await page.keyboard.type(p, {delay: getRndInteger(56, 300)});
     await sleep(getRndInteger(560, 768))
-    await page.realClick("#kc-login", {hesitate: getRndInteger(234, 456), moveDelay: getRndInteger(86, 121)});
+    await page.realCursor.move("#kc-login", {moveDelay: getRndInteger(86, 121)});
+    await page.$eval("#kc-login", el => el.click());
     console.log(c+": Login attempted, waiting for cf hops to finish");
 
     // wait for cf hops
@@ -139,6 +140,16 @@ const create_browser_task = async (page, c, data, er) => {
                     console.log(c+": CF WAF 403: attempting reload page");
                     await delayedReload(page);
                 }
+
+                if (response_count == (["fr"].includes(data.country) ? 4 : 3) && [429].includes(await response.status()))
+                {
+                    var n = Number(PROXY.split('-')[1])
+                    n < 4 ? n++ : n--;
+                    process.env.PROXY = `proxy-${n}` 
+                    PROXY = process.env.PROXY
+                    console.log(c+": CF 429 BLOCK, changing proxy to ", PROXY)
+                    throw "reload";
+                }
             } else if (!response.ok()) setHealthInfo(c, 500);
             if (request.redirectChain().length === 0 && response.ok()) {
                 await setHealthInfo(c, 200);
@@ -160,7 +171,6 @@ const create_browser_task = async (page, c, data, er) => {
                         )
                         responses.clear()
                     }
-                    
                 } catch (e) {
                     await setHealthInfo(c, 500);
                     console.log(c+": encountered error: " + await response.text() +  " "+ e.toString());
@@ -168,7 +178,12 @@ const create_browser_task = async (page, c, data, er) => {
                 }
             }
             if (response_count == (["fr"].includes(data.country) ? 4 : 3)) response_count = 0;
-        }catch (err) { await setHealthInfo(c, 500); console.log(err + '\n\n' + request.toString()); captureException(err)}
+        }catch (err) { 
+            if (err == "reload") throw err;
+            await setHealthInfo(c, 500);
+            console.log(err + '\n\n' + request.toString()); 
+            captureException(err)
+        }
     });
 
     await page.on('request', request => {
@@ -180,9 +195,7 @@ const create_browser_task = async (page, c, data, er) => {
     var reloadCount = 0;
     var maxRC = 100;
     while (true) {
-        await page.realCursor.moveTo(await getRandomPagePoint(page));
         console.log(c + " sleeping...")
-
         if (WORKER_TYPE == "ASSISTIVE" && isAssistLoadMaster()) allowAssistiveWorker(c, reloadCount == 0 ? 90000 : 150000);
 
         if (WORKER_TYPE == "ASSISTIVE" && !isAssistLoadMaster()) {    
@@ -198,6 +211,7 @@ const create_browser_task = async (page, c, data, er) => {
         if (reloadCount >= maxRC) {
             throw "reload";
         }
+
         const {windowId} = await session.send('Browser.getWindowForTarget');
         await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
 
@@ -290,6 +304,7 @@ async function bg_task_tls_adv() {
         {
             "worker_type": WORKER_TYPE,
             "worker_id": WORKER_ID,
+            "proxy": PROXY,
             "listeners": SUPPORTED_LISTENERS.split(','),
         },
         {

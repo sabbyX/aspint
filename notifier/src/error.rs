@@ -6,4 +6,6 @@ pub enum Error {
     TeloxideError(#[from] teloxide::RequestError),
     #[error("mongodb error: {0}")]
     MongoDBError(#[from] mongodb::error::Error),
+    #[error("reqwest error: {0}")]
+    ReqwestError(#[from] reqwest::Error),
 }
