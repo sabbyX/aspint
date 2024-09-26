@@ -162,7 +162,7 @@ const create_browser_task = async (page, c, data, er) => {
                         console.log(c+": posting to internal api");
                         await axios.post(
                             `http://backend:8000/internal/slotUpdateV2/${c}`,
-                            responses,
+                            JSON.stringify(Object.fromEntries(responses)),
                             {
                                 headers: {
                                     'Content-Type': 'application/json',
