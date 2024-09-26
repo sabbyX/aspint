@@ -8,6 +8,7 @@ mod model;
 mod subscribe;
 mod watch;
 mod table;
+mod health;
 
 #[tokio::main]
 async fn main() {

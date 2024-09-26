@@ -1,11 +1,6 @@
 use mongodb::bson::doc;
 use crate::{
-    constants::{AUTH_KEY, CLIENT, NOTIFIER_AUTH_COL}, 
-    error::Error, 
-    model::AuthUser, 
-    subscribe::{new_subscribe_cmd_handler, subscribe_callback_handler}, 
-    table::{table_callback_query, table_cmd_handler},
-    watch::poll_changes
+    constants::{AUTH_KEY, CLIENT, NOTIFIER_AUTH_COL}, error::Error, health::healthcheck_command_handler, model::AuthUser, subscribe::{new_subscribe_cmd_handler, subscribe_callback_handler}, table::{table_callback_query, table_cmd_handler}, watch::poll_changes
 };
 
 use teloxide::{dispatching::HandlerExt, prelude::*, utils::command::BotCommands};
@@ -27,6 +22,8 @@ pub enum AuthenticatedCommand {
     Subscribe,
     #[command(description = "Displays all available slots in chosen center")]
     Slots,
+    #[command(description = "Health check for workers")]
+    Health,
 }
 
 pub async fn run() {
@@ -120,6 +117,7 @@ async fn authenticated_command_handler(msg: Message, bot: Bot, cmd: Authenticate
     match cmd {
         AuthenticatedCommand::Subscribe => new_subscribe_cmd_handler(msg, bot).await,
         AuthenticatedCommand::Slots => table_cmd_handler(msg, bot).await,
+        AuthenticatedCommand::Health => healthcheck_command_handler(msg, bot).await,
     }
 }
 
