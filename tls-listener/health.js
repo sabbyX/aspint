@@ -16,7 +16,7 @@ const WORKER_ID = process.env.WORKER_ID;
 // 408 TIMEOUT
 // 500 OTHER ERRORS
 export async function setHealthInfo(center, code) {
-        var PROXY = process.env.PROXY
+    var PROXY = process.env.PROXY
     try {
         await axios.post(
             HEALTH_API_ENDPOINT,

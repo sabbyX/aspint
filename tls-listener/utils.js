@@ -115,3 +115,19 @@ export async function delayedReload(page) {
     await sleep(10 * 1000);
     await page.reload()
 }
+
+export async function isFReloadRequested(c) {
+    try {
+        var resp = await axios.get(
+            `http://backend:8000/internal/checkFreload/${process.env.WORKER_ID}/${c}`,
+            {
+                httpAgent: new http.Agent({keepAlive: true})
+            }
+        )
+        if (resp.data.reload) {
+            throw "reload";
+        }
+    } catch (e) {
+        console.warn("failed to check freload");
+    }
+}
