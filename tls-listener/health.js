@@ -1,4 +1,5 @@
-import axios from "axios";
+import axios from 'axios';
+import http from 'http';
 
 const HEALTH_API_ENDPOINT = "http://backend:8000/health/setWorkerHealth";
 const WORKER_TYPE = process.env.WORKER_TYPE;
@@ -15,7 +16,7 @@ const WORKER_ID = process.env.WORKER_ID;
 // 408 TIMEOUT
 // 500 OTHER ERRORS
 export async function setHealthInfo(center, code) {
-    var PROXY = process.env.PROXY
+        var PROXY = process.env.PROXY
     try {
         await axios.post(
             HEALTH_API_ENDPOINT,
@@ -27,7 +28,10 @@ export async function setHealthInfo(center, code) {
                 "listeners": LISTENERS,
                 "proxy": PROXY
             }
-        )
+        ),
+        {
+            httpAgent: new http.Agent({keepAlive: true})
+        }
     }
     catch (e) {
         console.log("failed to post health check:: error:", e);

@@ -60,7 +60,7 @@ fn build_text(data: IndexMap<SupportedCountries, IndexMap<String, HealthCheckMod
                     msg.push_str(&format!(" - {} \n", health.message));
                 }
 
-                if health.fail_rate > 0 && TimeDelta::seconds(health.last_fail as i64) < TimeDelta::hours(1){
+                if health.fail_rate > 0 && TimeDelta::seconds(health.last_fail as i64) < TimeDelta::hours(1) {
                     msg.push_str(&format!("        <i>fail rate</i>: {}\n", health.fail_rate));
                     let td = TimeDelta::seconds(health.last_fail as i64);
                     let td_str = format!("{} minutes ago",td.num_minutes());
@@ -102,7 +102,7 @@ pub async fn healthcheck_command_handler(msg: Message, bot: Bot) -> Result<(), E
         .await?;
 
     let hardcoded_d = HashMap::from([
-        (("1"), "Marsielle, France"),
+        ("1", "Marsielle, France"),
         ("2", "East London, UK"),
         ("3", "Wembley, UK"),
         ("4", "Paris, France"),

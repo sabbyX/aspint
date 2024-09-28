@@ -9,6 +9,7 @@
   },
   "private": true,
   "dependencies": {
+    "@forad/puppeteer-humanize": "^1.1.8",
     "@sentry/profiling-node": "^8.30.0",
     "axios": "^1.7.7",
     "fingerprint-injector": "^2.1.55",

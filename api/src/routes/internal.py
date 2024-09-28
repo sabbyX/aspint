@@ -61,6 +61,19 @@ async def check_assist_load(data: ListenerData, cache: Redis = Depends(get_cache
     return responses.JSONResponse({'status': exists, 'slpt': ty})
 
 
+FRELOAD_KEY = "freload:{}:{}"
+
+@router.post('/setForceReload/{wid}/{center}')
+async def force_reload(wid: str, center: str, cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
+    await cache.set(FRELOAD_KEY.format(wid, center), ex=timedelta(minutes=10))
+    return responses.JSONResponse()
+
+
+@router.post('/checkFreload/{wid}/{center}')
+async def check_freload(wid: str, center: str, cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
+    exists = await cache.exists(FRELOAD_KEY.format(wid, center))
+
+
 @router.post("/slotUpdateV2/{center}")
 async def slot_update(
     center: str, 
