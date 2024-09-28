@@ -1,6 +1,6 @@
-import './intrument.js';
+// import './intrument.js';
 import {getHomePage, apPage, cfHopRq, cfHopRq2} from './link.js'
-import { typeInto } from "@forad/puppeteer-humanize"
+import { humainzedCursorMovement, humanaizedCredentialEntry } from './humanize.js';
 
 
 import { connect } from 'puppeteer-real-browser'
@@ -9,7 +9,7 @@ const { getRandomPagePoint } = pkg;
 import axios from "axios";
 import {captureException} from "@sentry/node";
 import * as Sentry from "@sentry/node";
-import { sleep, getRndInteger, allowAssistiveWorker, isAssistLoadMaster, checkAssistLoad, delayedReload } from './utils.js';
+import { sleep, getRndInteger, allowAssistiveWorker, isAssistLoadMaster, checkAssistLoad, delayedReload, isFReloadRequested } from './utils.js';
 import { setHealthInfo } from './health.js';
 import { TimeoutError } from 'puppeteer';
 import http from 'http';
@@ -57,6 +57,21 @@ const create_browser_task = async (page, c, data, er) => {
     const {windowId} = await session.send('Browser.getWindowForTarget');
     await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
 
+    await page.setRequestInterception(true);
+    page.on('request', interceptedRequest => {
+        if (interceptedRequest.isInterceptResolutionHandled()) return;
+        if (
+          interceptedRequest.url().endsWith('.png') ||
+          interceptedRequest.url().endsWith('.jpg')
+        )
+          interceptedRequest.abort('failed', 0);
+        else
+          interceptedRequest.continue(
+            interceptedRequest.continueRequestOverrides(),
+            0
+          );
+      });
+
     await page.setViewport({
         width: 1920,
         height: 1080
@@ -82,15 +97,7 @@ const create_browser_task = async (page, c, data, er) => {
         })
     ]);
 
-    var m_max = getRndInteger(1,2);
-    for (var i = 0; i <= m_max; i++) {
-        console.log(c+": realCursor movement: ", i, "out of", m_max);
-        await page.realCursor.moveTo(await getRandomPagePoint(page));
-        var sleep_t = getRndInteger(1500, 2500)
-        console.log(c+": realCursor movement sleep for ", sleep_t);
-        await sleep(sleep_t);
-    }
-    
+    await humainzedCursorMovement(page, data.country, 2, 3);
     console.log(c + ": home page loaded")
     await page.waitForSelector("#tls-navbar > div > div.tls-navbar--links.-closed.height52 > div.tls-log > div > a").catch(_ => {});
     console.log(c+": loading login page")
@@ -107,45 +114,18 @@ const create_browser_task = async (page, c, data, er) => {
         }
     });
 
-    const config = {
-        mistakes: {
-            chance: 20,
-            delay: {
-                min: 70,
-                max: 800
-            }
-        },
-        delays: {
-            space: {
-                chance: 70,
-                min: 40,
-                max: 100
-            }
-        }
-    };
+    // needed?
+    await humainzedCursorMovement(page, data.country, 3, 4);
 
-    console.log(c+": login page loaded")
-    var m_max = getRndInteger(3,4);
-    for (var i = 0; i <= m_max; i++) {
-        console.log(c+": realCursor movement: ", i, "out of", m_max);
-        await page.realCursor.moveTo(await getRandomPagePoint(page));
-        var sleep_t = getRndInteger(1500, 2500)
-        console.log(c+": realCursor movement sleep for ", sleep_t);
-        await sleep(sleep_t);
-    }
     await sleep(getRndInteger(1200, 1500));
-    await page.waitForSelector('#username')
-    await page.focus("#username");
-    await page.realCursor.move("#username", {moveDelay: getRndInteger(50,200)}); 
-    // await page.keyboard.type(u, {delay: getRndInteger(40, 272)});
-    await typeInto(await page.$("#username"), u, config);
-    await page.focus("#password");
-    await page.realCursor.move("#password", {moveDelay: getRndInteger(50,200)});
-    // await page.keyboard.type(p, {delay: getRndInteger(56, 300)});
-    await typeInto(await page.$("#password"), p, config);
-    await sleep(getRndInteger(560, 768))
-    await page.realCursor.click("#kc-login", {moveDelay: getRndInteger(86, 121)});
-    // await page.$eval("#kc-login", el => el.click());
+    console.log(c+": credential entry begin");
+    await humanaizedCredentialEntry(page, data.country, u, p);
+    await sleep(getRndInteger(900,1500));
+    console.log(c+": credential entry finished");
+
+    if (["fr"].includes(data.country)) await page.realCursor.click("#kc-login", {moveDelay: getRndInteger(86, 121)});
+    else await page.$eval("#kc-login", e => e.click()); 
+
     console.log(c+": Login attempted, waiting for cf hops to finish");
 
     // wait for cf hops
@@ -162,34 +142,31 @@ const create_browser_task = async (page, c, data, er) => {
     console.log(c+": Login procedure finished")
     var responses = new Map()
     var response_count = 0;
+    var prev_status = 0;
 
     console.log(c+": loading appointment page")
-    await page.setRequestInterception(true);
     await page.on('requestfinished', async (request) => {
         if (!request.url().endsWith('Stage=appointment')){ return }
         const response = await request.response();
+        prev_status = await response.status();
         console.log(c+ ": "+ response.url() + " " + request.redirectChain().length + " " + await response.status(), await response.statusText())
         try {
             response_count++;
             if ([403,429].includes(await response.status())) {
                 console.warn(c+": possibly blocked by cloudflare WAF")
-                if (response_count == (["fr"].includes(data.country) ? 4 : 3) && [403].includes(await response.status())) 
+                if (response_count == (["fr"].includes(data.country) ? 4 : 3)) 
                 {
-                    setHealthInfo(c, 403);
-                    if (["be"].includes(data.country)) throw "reload";
-                    console.log(c+": CF WAF 403: attempting reload page");
-                    await delayedReload(page);
-                }
-
-                if (response_count == (["fr"].includes(data.country) ? 4 : 3) && [429].includes(await response.status()))
-                {
-                    setHealthInfo(c, 403);
-                    var n = Number(PROXY.split('-')[1])
-                    n < 4 ? n++ : n--;
-                    // process.env.PROXY = `proxy-${n}` 
-                    // PROXY = process.env.PROXY
-                    console.log(c+": CF 429 BLOCK, proxy: ", PROXY)
-                    // throw "reload";
+                    if ([403].includes(await response.status()))
+                    {
+                        setHealthInfo(c, 403);
+                        if (["be"].includes(data.country)) throw "reload";
+                        console.log(c+": CF WAF 403: attempting reload page");
+                        await delayedReload(page);
+                    }
+                    if ([429].includes(await response.status())) {
+                        setHealthInfo(c, 403);
+                        console.log(c+": CF 429 BLOCK, proxy: ", PROXY)
+                    }
                 }
             } else if (!response.ok() && response_count == (["fr"].includes(data.country) ? 4 : 3)) setHealthInfo(c, 500);
             if (request.redirectChain().length === 0 && response.ok()) {
@@ -218,9 +195,18 @@ const create_browser_task = async (page, c, data, er) => {
                     captureException(e);
                 }
             }
-            if (response_count == (["fr"].includes(data.country) ? 4 : 3)) response_count = 0;
+            if (response_count == (["fr"].includes(data.country) ? 4 : 3)) {
+                response_count = 0
+
+                await humainzedCursorMovement(page, data.country, 3, 4);
+
+                var cookies = [
+                    {'name': '__cf_bm'},
+                    {'name': '__cf_clearance'},
+                ]
+                if ([429].includes(prev_status)) await page.deleteCookie(...cookies)
+            };
         }catch (err) { 
-            if (err == "reload") throw err;
             await setHealthInfo(c, 500);
             console.log(err + '\n\n' + request.toString()); 
             captureException(err)
@@ -237,6 +223,9 @@ const create_browser_task = async (page, c, data, er) => {
     var maxRC = 100;
     while (true) {
         console.log(c + " sleeping...")
+
+        await isFReloadRequested(c);
+
         if (WORKER_TYPE == "ASSISTIVE" && isAssistLoadMaster()) allowAssistiveWorker(c, reloadCount == 0 ? 90000 : 150000);
 
         if (WORKER_TYPE == "ASSISTIVE" && !isAssistLoadMaster()) {    
@@ -287,7 +276,7 @@ async function b_wrapper(_, c, data, delay) {
                 "--start-maximized",
                 "--disable-backgrounding-occluded-windows",
                 "--disable-background-timer-throttling",
-                "--disable-renderer-backgrounding"
+                "--disable-renderer-backgrounding",
             ],
             customConfig: {},
             turnstile: true,
