@@ -107,6 +107,7 @@ services:
       start_interval: 5s
     ports:
       - "8000:8000"
+    shm_size: 2gb
     depends_on:
       db:
         condition: service_healthy
@@ -179,11 +180,9 @@ services:
     environment:
       WORKER_ID: fr-2
       WORKER_TYPE: ASSISTIVE
-      SUPPORTED_LISTENERS: gbLON2fr-1,gbMNC2fr-1,gbEDI2fr-1
+      SUPPORTED_LISTENERS: gbLON2fr-1,gbMNC2fr-1
       PROXY: proxy-2
     shm_size: 2gb
     depends_on:
       backend:
         condition: service_healthy
-
-

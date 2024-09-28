@@ -100,6 +100,8 @@ async def worker_health():
     countries = ["be", "ch", "de", "fr"]
     reg_workers = {
         'gbLON2fr': ['fr-1', 'fr-2'],
+        'gbMNC2fr': ['fr-1', 'fr-2'],
+        'gbEDI2fr': ['fr-1']
     }
 
     # spec:

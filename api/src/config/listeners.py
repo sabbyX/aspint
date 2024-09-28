@@ -1,7 +1,7 @@
 
 auth_data = {
     'gbLON2fr': {
-        'username': 'cobeve6079@ofionk.com',
+        'username': 'cobeve6079@ofionk.com',  # FRA1LON*
         'password': 'Test@123',
         'fg_id': 16887585,
         'country': 'fr'
@@ -24,10 +24,34 @@ auth_data = {
         'fg_id': 16892730,
         'country': 'fr'
     },
-    'gbLON2de': {
-        'username': 'aspint.de.lon.1@proton.me',
+    'gbMNC2fr': {
+        'username': 'podogo5601@skrak.com',  # FRA1MC*<total:17>
         'password': 'Test@123',
-        'fg_id': 2687578,
+        'fg_id': 16969495,
+        'country': 'fr',
+    },
+    'gbMNC2fr-1': {
+        'username': 'kotate5955@sgatra.com',
+        'password': 'Test@123',
+        'fg_id': 16969694,
+        'country': 'fr',
+    },
+    'gbEDI2fr': {
+        'username': 'rotonot518@rinseart.com',  # FRA1ED*<total:17>
+        'password': 'Test@123',
+        'fg_id': 16969751,
+        'country': 'fr',
+    },
+    'gbEDI2fr-1': {
+        'username': 'lekepe5839@rinseart.com',
+        'password': 'Test@123',
+        'fg_id': 16969897,
+        'country': 'fr',
+    },
+    'gbLON2de': {
+        'username': 'podogo5601@skrak.com',
+        'password': 'Test@123',
+        'fg_id': 2706974,
         'country': 'de',
     },
     'gbMNC2de': {
@@ -67,7 +91,7 @@ auth_data = {
     'gbLON2ch': {
         'username': 'nogaf50833@hapied.com',
         'password': 'Test@123',
-        'fg_id': 1201348,
+        'fg_id': 1205484,
         'country': 'ch',
     },
     # 1/3/25

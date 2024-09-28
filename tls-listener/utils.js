@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Page } from "puppeteer";
+import http from 'http';
 
 /**
  * @param {Page} page
@@ -67,9 +68,13 @@ export async function allowAssistiveWorker(c, t) {
             "center": c,
             "worker_id": process.env.WORKER_ID,
             "worker_type": process.env.WORKER_TYPE,
+        },
+        {
+            httpAgent: new http.Agent({keepAlive: true}),
+            timeout: 0,
         }
     );
-    if (resp.status == 200) 
+    if (resp.status == 200)
         console.log(process.env.WORKER_ID+": assist worker start command success");
     else
         console.warn(process.env.WORKER_ID+": Failed to start assist worker", resp.statusText);
@@ -86,6 +91,9 @@ export async function checkAssistLoad(c) {
                 "center": c,
                 "worker_id": process.env.WORKER_ID,
                 "worker_type": process.env.WORKER_TYPE,
+            },
+            {
+                httpAgent: new http.Agent({keepAlive: true})
             }
         )
         if (resp.data.status) {
@@ -95,7 +103,7 @@ export async function checkAssistLoad(c) {
         c_tc++;
         if (c_tc >= max_tc) break;
 
-        await sleep(5000);
+        await sleep(10000);
     }
 }
 
