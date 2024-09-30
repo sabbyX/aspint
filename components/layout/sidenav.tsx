@@ -8,17 +8,14 @@ import React from "react";
 import {LogsIcon, LucideIcon, ServerIcon, Settings2Icon, UserPlus2} from 'lucide-react'
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
-    // items: {
-    //     href: string
-    //     title: string
-    //     icon: LucideIcon
-    // }[]
+    setOpen?: (open: boolean) => void;
 }
+
 const items = [
     {
         title: "New Application",
         icon: UserPlus2,
-        href: "/",
+        href: "/autobook",
     },
     {
         title: "View Instances",
@@ -37,7 +34,7 @@ const items = [
     },
 ]
 
-export function SidebarNav({ className, ...props }: SidebarNavProps) {
+export function SidebarNav({ className, setOpen, ...props }: SidebarNavProps) {
     const pathname = usePathname()
 
     return (
@@ -52,13 +49,16 @@ export function SidebarNav({ className, ...props }: SidebarNavProps) {
                 <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => {
+                        if (setOpen) setOpen(false);
+                    }}
                     className={cn(
                         buttonVariants({ variant: "ghost" }),
                         pathname === item.href
                             ? "bg-muted hover:bg-muted"
                             : "hover:bg-muted/40",
                         "justify-start",
-                        "font-light"
+                        "font-semi-bold"
                     )}
                 >
                     <item.icon className="mr-2 w-4 h-4" />

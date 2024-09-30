@@ -10,6 +10,16 @@ const nextConfig = {
 
             }
         ]
+    },
+    redirects: async  () => {
+        return [
+            // Basic redirect
+            {
+                source: '/',
+                destination: '/autobook',
+                permanent: true,
+            },
+        ]
     }
 };
 
