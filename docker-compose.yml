@@ -178,10 +178,13 @@ services:
       context: tls-listener/
       dockerfile: Dockerfile
     environment:
-      WORKER_ID: fr-2
+      WORKER_ID: detach-1
       WORKER_TYPE: ASSISTIVE
-      SUPPORTED_LISTENERS: gbLON2fr-1,gbMNC2fr-1
-      PROXY: proxy-2
+      SUPPORTED_LISTENERS: gbLON2fr-3
+      PROXY: http://118.193.59.102
+      PROXY_PORT: 2334
+      PROXY_UN: u197aa4f6566105bb-zone-custom-region-gb-st-england-city-tottenham-session-ERCFssJT4-sessTime-120
+      PROXY_PW: u197aa4f6566105bb
     shm_size: 2gb
     depends_on:
       backend:
