@@ -2,6 +2,8 @@ import axios from "axios";
 import { Page } from "puppeteer";
 import http from 'http';
 
+import {BACKEND_HOST, WORKER_ID, WORKER_TYPE} from "./constants.js";
+
 /**
  * @param {Page} page
  */
@@ -63,11 +65,11 @@ export function sleep(ms) {
 
 export async function allowAssistiveWorker(c, t) {
     var resp = await axios.post(
-        `http://backend:8000/internal/allowAssistiveWorkers/${t}`,
+        `${BACKEND_HOST}/internal/allowAssistiveWorkers/${t}`,
         {
             "center": c,
-            "worker_id": process.env.WORKER_ID,
-            "worker_type": process.env.WORKER_TYPE,
+            "worker_id": WORKER_ID,
+            "worker_type": WORKER_TYPE,
         },
         {
             httpAgent: new http.Agent({keepAlive: true}),
@@ -75,9 +77,9 @@ export async function allowAssistiveWorker(c, t) {
         }
     );
     if (resp.status == 200)
-        console.log(process.env.WORKER_ID+": assist worker start command success");
+        console.log(WORKER_ID+": assist worker start command success");
     else
-        console.warn(process.env.WORKER_ID+": Failed to start assist worker", resp.statusText);
+        console.warn(WORKER_ID+": Failed to start assist worker", resp.statusText);
 }
 
 
@@ -86,11 +88,11 @@ export async function checkAssistLoad(c) {
     var c_tc = 0;
     while (true) {
         var resp = await axios.post(
-            "http://backend:8000/internal/checkAssistLoad",
+            `${BACKEND_HOST}/internal/checkAssistLoad`,
             {
                 "center": c,
-                "worker_id": process.env.WORKER_ID,
-                "worker_type": process.env.WORKER_TYPE,
+                "worker_id": WORKER_ID,
+                "worker_type": WORKER_TYPE,
             },
             {
                 httpAgent: new http.Agent({keepAlive: true})
@@ -108,7 +110,7 @@ export async function checkAssistLoad(c) {
 }
 
 export function isAssistLoadMaster() {
-    return ((process.env.WORKER_ID).split('-')[1]) == "1"
+    return ((WORKER_ID).split('-')[1]) == "1"
 }
 
 export async function delayedReload(page) {
@@ -119,7 +121,7 @@ export async function delayedReload(page) {
 export async function isFReloadRequested(c) {
     try {
         var resp = await axios.get(
-            `http://backend:8000/internal/checkFreload/${process.env.WORKER_ID}/${c}`,
+            `${BACKEND_HOST}/internal/checkFreload/${WORKER_ID}/${c}`,
             {
                 httpAgent: new http.Agent({keepAlive: true})
             }
@@ -130,4 +132,24 @@ export async function isFReloadRequested(c) {
     } catch (e) {
         console.warn("failed to check freload");
     }
+}
+
+export async function rotateListener(c,data) {
+    try {
+        var resp = await axios.get(
+            `${BACKEND_HOST}/internal/rotateListener/${c}`,
+            {
+                httpAgent: new http.Agent({keepAlive: true}),
+            }
+        )
+        if (resp.data.status == "ok") {
+            console.log(c+": successfully rotated listener");
+            return resp.data.data;
+        }
+    } catch (e) {
+        console.log("failed to reload listener, error=", e.toString());
+    } 
+
+    console.log(c+": failed to rotate listener, note: listener might not have rotating capability")
+    return data
 }
