@@ -3,7 +3,7 @@ import { getRndInteger, sleep } from "./utils.js";
 import { getRandomPagePoint } from 'ghost-cursor';
 
 export async function humainzedCursorMovement(page, country, minMoves, maxMoves) {
-    if (["fr"].includes(country)) {
+    if (["fr", "be", "de", "ch"].includes(country)) {
         var m_max = getRndInteger(1,2);
         for (var i = 0; i <= m_max; i++) {
             console.log(country+": realCursor movement: ", i, "out of", m_max);
@@ -17,10 +17,10 @@ export async function humainzedCursorMovement(page, country, minMoves, maxMoves)
 
 
 export async function humanaizedCredentialEntry(page, country, username, password) {
-    if (["fr"].includes(country)) {
+    if (["fr", "be", "de", "ch"].includes(country)) {
         const config = {
             mistakes: {
-                chance: 20,
+                chance: 8,
                 delay: {
                     min: 70,
                     max: 800
