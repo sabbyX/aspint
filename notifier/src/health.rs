@@ -101,19 +101,19 @@ pub async fn healthcheck_command_handler(msg: Message, bot: Bot) -> Result<(), E
         .json::<IndexMap<SupportedCountries, IndexMap<String, HealthCheckModel>>>()
         .await?;
 
-    let hardcoded_d = HashMap::from([
-        ("1", "Marsielle, France"),
-        ("2", "East London, UK"),
-        ("3", "Wembley, UK"),
-        ("4", "Paris, France"),
-    ]);
+    // let hardcoded_d = HashMap::from([
+    //     ("1", "Marsielle, France"),
+    //     ("2", "East London, UK"),
+    //     ("3", "Wembley, UK"),
+    //     ("4", "Paris, France"),
+    // ]);
 
-    let proxy_health = reqwest::get(
-        "http://localhost:8000/health/proxy"
-    )
-        .await?
-        .json::<IndexMap<String, ProxyHealthCheckModel>>()
-        .await?;
+    // let proxy_health = reqwest::get(
+    //     "http://localhost:8000/health/proxy"
+    // )
+    //     .await?
+    //     .json::<IndexMap<String, ProxyHealthCheckModel>>()
+    //     .await?;
 
     let text = build_text(worker_health);
 
@@ -121,10 +121,10 @@ pub async fn healthcheck_command_handler(msg: Message, bot: Bot) -> Result<(), E
         .parse_mode(ParseMode::Html)
         .await?;
 
-    let text = build_text_proxy_status(proxy_health, hardcoded_d);
-    bot.send_message(msg.chat.id, text)
-    .parse_mode(ParseMode::Html)
-    .await?;
+    // let text = build_text_proxy_status(proxy_health, hardcoded_d);
+    // bot.send_message(msg.chat.id, text)
+    // .parse_mode(ParseMode::Html)
+    // .await?;
 
     Ok(())
 }

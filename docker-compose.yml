@@ -13,7 +13,7 @@ services:
       - HTTPPROXY=on
       - HTTPPROXY_LOG=on
       - HTTPPROXY_STEALTH=on
-            
+
       - BLOCK_MALICIOUS=off
       - BLOCK_SURVEILLANCE=off
       - BLOCK_ADS=off
@@ -22,75 +22,139 @@ services:
     volumes:
       - ./gl:/gluetun
 
-  proxy-2:
-    image: qmcgaw/gluetun
-    cap_add:
-      - NET_ADMIN
-    environment:
-      - VPN_SERVICE_PROVIDER=expressvpn
-      - OPENVPN_USER=k3tjzlgi132ztpegs6m749d5
-      - OPENVPN_PASSWORD=lhx877m858kzcggfm1uzz1om
-
-      - HTTPPROXY=on
-      - HTTPPROXY_LOG=on
-      - HTTPPROXY_STEALTH=on
-      
-      - SERVER_COUNTRIES=UK
-      - SERVER_HOSTNAMES=uk-east-london-ca-version-2.expressnetw.com
-      
-      - BLOCK_MALICIOUS=off
-      - BLOCK_SURVEILLANCE=off
-      - BLOCK_ADS=off
-      - DOT=off
-    volumes:
-      - ./gl:/gluetun            
-
-
+#  proxy-2:
+#    image: qmcgaw/gluetun
+#    cap_add:
+#      - NET_ADMIN
+#    environment:
+#      - VPN_SERVICE_PROVIDER=expressvpn
+#      - OPENVPN_USER=k3tjzlgi132ztpegs6m749d5
+#      - OPENVPN_PASSWORD=lhx877m858kzcggfm1uzz1om
+#
+#      - HTTPPROXY=on
+#      - HTTPPROXY_LOG=on
+#      - HTTPPROXY_STEALTH=on
+#
+#      - SERVER_COUNTRIES=UK
+#      - SERVER_HOSTNAMES=uk-east-london-ca-version-2.expressnetw.com
+#
+#      - BLOCK_MALICIOUS=off
+#      - BLOCK_SURVEILLANCE=off
+#      - BLOCK_ADS=off
+#      - DOT=off
+#    volumes:
+#      - ./gl:/gluetun
+#
+#
   proxy-3:
     image: qmcgaw/gluetun
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=custom
-      - OPENVPN_CUSTOM_CONFIG=/gluetun/wembley.ovpn
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/belgium.ovpn
       - OPENVPN_USER=k3tjzlgi132ztpegs6m749d5
       - OPENVPN_PASSWORD=lhx877m858kzcggfm1uzz1om
 
       - HTTPPROXY=on
       - HTTPPROXY_LOG=on
       - HTTPPROXY_STEALTH=on
-      
+
       - BLOCK_MALICIOUS=off
       - BLOCK_SURVEILLANCE=off
       - BLOCK_ADS=off
       - DOT=off
-    
+
     volumes:
       - ./gl:/gluetun
 
-  proxy-4:
+#  proxy-4:
+#    image: qmcgaw/gluetun
+#    cap_add:
+#      - NET_ADMIN
+#    environment:
+#      - VPN_SERVICE_PROVIDER=expressvpn
+#      - OPENVPN_USER=k3tjzlgi132ztpegs6m749d5
+#      - OPENVPN_PASSWORD=lhx877m858kzcggfm1uzz1om
+#
+#      - HTTPPROXY=on
+#      - HTTPPROXY_LOG=on
+#      - HTTPPROXY_STEALTH=on
+#
+#      - SERVER_COUNTRIES=Belgium
+#      - SERVER_HOSTNAME=belgium-ca-version-2.expressnetw.com
+#
+#      - BLOCK_MALICIOUS=off
+#      - BLOCK_SURVEILLANCE=off
+#      - BLOCK_ADS=off
+#      - DOT=off
+#
+#    volumes:
+#      - ./gl:/gluetun
+#
+#  proxy-5:
+#    image: qmcgaw/gluetun
+#    cap_add:
+#      - NET_ADMIN
+#    environment:
+#      - VPN_SERVICE_PROVIDER=expressvpn
+#      - OPENVPN_USER=k3tjzlgi132ztpegs6m749d5
+#      - OPENVPN_PASSWORD=lhx877m858kzcggfm1uzz1om
+#
+#      - HTTPPROXY=on
+#      - HTTPPROXY_LOG=on
+#      - HTTPPROXY_STEALTH=on
+#
+#      - SERVER_COUNTRIES=Belgium
+#      - SERVER_HOSTNAME=belgium-ca-version-2.expressnetw.com
+#
+#      - BLOCK_MALICIOUS=off
+#      - BLOCK_SURVEILLANCE=off
+#      - BLOCK_ADS=off
+#      - DOT=off
+#
+#    volumes:
+#      - ./gl:/gluetun
+
+  proxy-6:
     image: qmcgaw/gluetun
     cap_add:
       - NET_ADMIN
     environment:
-      - VPN_SERVICE_PROVIDER=expressvpn
+      - VPN_SERVICE_PROVIDER=custom
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/jurong.ovpn
       - OPENVPN_USER=k3tjzlgi132ztpegs6m749d5
       - OPENVPN_PASSWORD=lhx877m858kzcggfm1uzz1om
 
       - HTTPPROXY=on
       - HTTPPROXY_LOG=on
       - HTTPPROXY_STEALTH=on
-      
-      - SERVER_COUNTRIES=France
-      - SERVER_HOSTNAMES=france-paris-2-ca-version-2.expressnetw.com
-      
+
       - BLOCK_MALICIOUS=off
       - BLOCK_SURVEILLANCE=off
       - BLOCK_ADS=off
       - DOT=off
-      
+
     volumes:
       - ./gl:/gluetun
+    ports:
+      - "7777:8888"
+
+  expressvpn:
+    container_name: expressvpn
+    image: polkaned/expressvpn
+    environment:
+      - ACTIVATION_CODE=E4HJOLSXCAGJNWVGSSW3RNH
+      - SERVER=Belgium
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+    privileged: true
+    restart: unless-stopped
 
   backend:
     build: ./api/
@@ -132,7 +196,7 @@ services:
         - |
             chmod 400 /data/replica.key
             chown 999:999 /data/replica.key
-            exec docker-entrypoint.sh $$@  
+            exec docker-entrypoint.sh $$@
     healthcheck:
       test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'db:27017'}]}) }" | mongosh -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --port 27017 --quiet
       interval: 5s
@@ -153,7 +217,38 @@ services:
     environment:
       WORKER_ID: common-1
       WORKER_TYPE: INDE
-      SUPPORTED_LISTENERS: gbLON2de,gbMNC2de,gbEDI2de,gbLON2be,gbMNC2be,gbEDI2be,gbLON2ch,gbEDI2ch,gbMNC2ch
+      SUPPORTED_LISTENERS: gbLON2de,gbLON2be,gbLON2ch
+    shm_size: 2gb
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  tls-common-2:
+    build:
+      context: tls-listener/
+      dockerfile: Dockerfile
+    environment:
+      WORKER_ID: common-2
+      WORKER_TYPE: INDE
+      SUPPORTED_LISTENERS: gbMNC2de,gbMNC2be,gbMNC2ch
+      PROXY: proxy-6
+      PROXY_PORT: 8888
+      BROWSER_PATH: /usr/bin/brave-browser-stable
+      shm_size: 2gb
+    depends_on:
+      backend:
+        condition: service_healthy
+      proxy-6:
+          condition: service_healthy
+
+  tls-common-3:
+    build:
+      context: tls-listener/
+      dockerfile: Dockerfile
+    environment:
+      WORKER_ID: common-3
+      WORKER_TYPE: INDE
+      SUPPORTED_LISTENERS: gbEDI2de,gbEDI2be,gbEDI2ch
     shm_size: 2gb
     depends_on:
       backend:
@@ -166,23 +261,41 @@ services:
     environment:
       WORKER_ID: fr-1
       WORKER_TYPE: ASSISTIVE
-      SUPPORTED_LISTENERS: gbLON2fr,gbMNC2fr,gbEDI2fr
+      SUPPORTED_LISTENERS: gbLON2fr-1
       PROXY: proxy-1
+      PROXY_PORT: 8888
     shm_size: 2gb
     depends_on:
       backend:
         condition: service_healthy
-  
-  tls-fr-2:
-    build:
-      context: tls-listener/
-      dockerfile: Dockerfile
-    environment:
-      WORKER_ID: fr-2
-      WORKER_TYPE: ASSISTIVE
-      SUPPORTED_LISTENERS: gbLON2fr-1,gbMNC2fr-1
-      PROXY: proxy-2
-    shm_size: 2gb
-    depends_on:
-      backend:
+      proxy-1:
         condition: service_healthy
+
+
+  # tls-fr-1:
+  #   build:
+  #     context: tls-listener/
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     WORKER_ID: fr-1
+  #     WORKER_TYPE: ASSISTIVE
+  #     SUPPORTED_LISTENERS: gbLON2fr,gbMNC2fr,gbEDI2fr
+  #     PROXY: proxy-1
+  #   shm_size: 2gb
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy
+
+  # tls-fr-2:
+  #   build:
+  #     context: tls-listener/
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     WORKER_ID: fr-2
+  #     WORKER_TYPE: ASSISTIVE
+  #     SUPPORTED_LISTENERS: gbLON2fr-1,gbMNC2fr-1
+  #     PROXY: proxy-2
+  #   shm_size: 2gb
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy

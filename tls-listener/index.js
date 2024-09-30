@@ -1,4 +1,4 @@
-// import './intrument.js';
+import './intrument.js';
 import {getHomePage, apPage, cfHopRq, cfHopRq2} from './link.js'
 import { humainzedCursorMovement, humanaizedCredentialEntry } from './humanize.js';
 
@@ -82,6 +82,8 @@ const create_browser_task = async (page, c, data, er) => {
         height: 1080
     });
 
+    console.log(c+": "+JSON.stringify(data));
+
     console.log(c + ' loading home page');
     await Promise.all([
         page.goto(
@@ -128,8 +130,8 @@ const create_browser_task = async (page, c, data, er) => {
     await sleep(getRndInteger(900,1500));
     console.log(c+": credential entry finished");
 
-    if (["fr", "be", "de", "ch"].includes(data.country)) await page.realCursor.click("#kc-login", {moveDelay: getRndInteger(86, 121)});
-    else await page.$eval("#kc-login", e => e.click()); 
+    if (["fr", "be", "de", "ch"].includes(data.country)) await page.realCursor.move("#kc-login", {moveDelay: getRndInteger(86, 121)});
+    await page.$eval("#kc-login", e => e.click());
 
     console.log(c+": Login attempted, waiting for cf hops to finish");
 
@@ -246,8 +248,7 @@ const create_browser_task = async (page, c, data, er) => {
         console.log(c+': reload count: ' + reloadCount, "out of ", maxRC);
         if (reloadCount >= maxRC) {
             // todo: make ASSISTIVE able to rotate?
-            if (WORKER_TYPE == "INDE") data = await rotateListener(c, data);
-            throw "reload";
+            throw "reloadListener";
         }
 
         const {windowId} = await session.send('Browser.getWindowForTarget');
@@ -293,7 +294,7 @@ async function b_wrapper(_, c, data, delay) {
             connectOption: {
                 defaultViewport: null,
             },
-            disableXvfb: true,
+            disableXvfb: false,
             ignoreAllFlags: false,
             // @ts-ignore
             proxy: PROXY == null ? {} : {
@@ -305,7 +306,7 @@ async function b_wrapper(_, c, data, delay) {
         })
 
         if (err) console.log(c+": recovery restart - sleeping for 1 min");
-        await sleep(err ? 60 * 1 * 1000 : delay);
+        await sleep(err ? 60000 : delay);
         try {
             page.setDefaultTimeout(120 * 1000);
             await page.emulateTimezone('Europe/London');
@@ -318,6 +319,8 @@ async function b_wrapper(_, c, data, delay) {
             if (e == 'reload') {
                 console.log(c+": Scheduled reload in progress...");
                 is_failed_restart = false;
+            } else if (e == 'reloadListener') {
+                if (WORKER_TYPE == "INDE") data = await rotateListener(c, data);
             } else {
                 console.log(c+": Encountered error, initiating restart procedure...")
                 if (e instanceof TimeoutError) await setHealthInfo(c, 408);
