@@ -1,23 +1,32 @@
-// import './intrument.js';
+import './intrument.js';
 import {getHomePage, apPage, cfHopRq, cfHopRq2} from './link.js'
 import { humainzedCursorMovement, humanaizedCredentialEntry } from './humanize.js';
 
 
 import { connect } from 'puppeteer-real-browser'
-import pkg from 'ghost-cursor';
-const { getRandomPagePoint } = pkg;
 import axios from "axios";
 import {captureException} from "@sentry/node";
 import * as Sentry from "@sentry/node";
-import { sleep, getRndInteger, allowAssistiveWorker, isAssistLoadMaster, checkAssistLoad, delayedReload, isFReloadRequested } from './utils.js';
+import { sleep, getRndInteger, allowAssistiveWorker, isAssistLoadMaster, checkAssistLoad, delayedReload, isFReloadRequested, rotateListener } from './utils.js';
 import { setHealthInfo } from './health.js';
 import { TimeoutError } from 'puppeteer';
 import http from 'http';
+import {
+    WORKER_ID,
+    WORKER_TYPE,
+    DEF_PROXY,
+    LISTENERS,
+    DEF_PROXY_PORT,
+    DEF_PROXY_UN,
+    DEF_PROXY_PW,
+    BACKEND_HOST, BROWSER_PATH
+} from './constants.js'
 
-const WORKER_TYPE = process.env.WORKER_TYPE;
-const WORKER_ID = process.env.WORKER_ID;
-const SUPPORTED_LISTENERS = process.env.SUPPORTED_LISTENERS
-var PROXY = process.env.PROXY;
+const SUPPORTED_LISTENERS = LISTENERS
+var PROXY = DEF_PROXY;
+var PROXY_PORT = DEF_PROXY_PORT
+var PROXY_UN = DEF_PROXY_UN
+var PROXY_PW = DEF_PROXY_PW
 
 import dns from 'dns';
 // Set default result order for DNS resolution
@@ -49,10 +58,6 @@ console.log = function()
 
 
 const create_browser_task = async (page, c, data, er) => {
-    const u = data.username;
-    const p = data.password;
-    const f = data.fg_id;
-
     const session = await page.target().createCDPSession();
     const {windowId} = await session.send('Browser.getWindowForTarget');
     await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
@@ -76,6 +81,8 @@ const create_browser_task = async (page, c, data, er) => {
         width: 1920,
         height: 1080
     });
+
+    console.log(c+": "+JSON.stringify(data));
 
     console.log(c + ' loading home page');
     await Promise.all([
@@ -119,12 +126,12 @@ const create_browser_task = async (page, c, data, er) => {
 
     await sleep(getRndInteger(1200, 1500));
     console.log(c+": credential entry begin");
-    await humanaizedCredentialEntry(page, data.country, u, p);
+    await humanaizedCredentialEntry(page, data.country, data.username, data.password);
     await sleep(getRndInteger(900,1500));
     console.log(c+": credential entry finished");
 
-    if (["fr"].includes(data.country)) await page.realCursor.click("#kc-login", {moveDelay: getRndInteger(86, 121)});
-    else await page.$eval("#kc-login", e => e.click()); 
+    if (["fr", "be", "de", "ch"].includes(data.country)) await page.realCursor.move("#kc-login", {moveDelay: getRndInteger(86, 121)});
+    await page.$eval("#kc-login", e => e.click());
 
     console.log(c+": Login attempted, waiting for cf hops to finish");
 
@@ -143,6 +150,8 @@ const create_browser_task = async (page, c, data, er) => {
     var responses = new Map()
     var response_count = 0;
     var prev_status = 0;
+
+    var freloadListener = false;
 
     console.log(c+": loading appointment page")
     await page.on('requestfinished', async (request) => {
@@ -168,7 +177,11 @@ const create_browser_task = async (page, c, data, er) => {
                         console.log(c+": CF 429 BLOCK, proxy: ", PROXY)
                     }
                 }
-            } else if (!response.ok() && response_count == (["fr"].includes(data.country) ? 4 : 3)) setHealthInfo(c, 500);
+            } else if ([500].includes(await response.status())) {
+                console.warn("Account := ", JSON.stringify(data), "is blocked, please update, flagging for choosing next listener if any...");
+                freloadListener = true;
+            }
+            else if (!response.ok() && response_count == (["fr"].includes(data.country) ? 4 : 3)) setHealthInfo(c, 500);
             if (request.redirectChain().length === 0 && response.ok()) {
                 await setHealthInfo(c, 200);
                 try {
@@ -179,7 +192,7 @@ const create_browser_task = async (page, c, data, er) => {
                     if (responses.size == (["fr"].includes(data.country) ? 4 : 3)) {
                         console.log(c+": posting to internal api");
                         await axios.post(
-                            `http://backend:8000/internal/slotUpdateV2/${c}`,
+                            `${BACKEND_HOST}/internal/slotUpdateV2/${c}`,
                             JSON.stringify(Object.fromEntries(responses)),
                             {
                                 headers: {
@@ -204,7 +217,7 @@ const create_browser_task = async (page, c, data, er) => {
                     {'name': '__cf_bm'},
                     {'name': '__cf_clearance'},
                 ]
-                if ([429].includes(prev_status)) await page.deleteCookie(...cookies)
+                // if ([429].includes(prev_status)) await page.deleteCookie(...cookies)
             };
         }catch (err) { 
             await setHealthInfo(c, 500);
@@ -216,11 +229,12 @@ const create_browser_task = async (page, c, data, er) => {
     await page.on('request', request => {
         request.continue();
     });
-    await page.goto(apPage(data.country)+c+"/"+f);
+    await page.goto(apPage(data.country)+c+"/"+data.fg_id);
     console.log(c+": loaded appointment page");
 
     var reloadCount = 0;
-    var maxRC = 100;
+    // rotate in 1 hour, todo: 30 min rotation?
+    var maxRC = WORKER_TYPE == "ASSISTIVE"? 100 : 12;
     while (true) {
         console.log(c + " sleeping...")
 
@@ -236,17 +250,19 @@ const create_browser_task = async (page, c, data, er) => {
         } else await sleep(1000 * 60 * 4);
 
         reloadCount++;
-        
+
         console.log(c+': reload count: ' + reloadCount, "out of ", maxRC);
-        if (reloadCount >= maxRC) {
-            throw "reload";
+        if (reloadCount >= maxRC || freloadListener) {
+            // todo: make ASSISTIVE able to rotate?
+            freloadListener = false;
+            throw "reloadListener";
         }
 
         const {windowId} = await session.send('Browser.getWindowForTarget');
         await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
 
-        if (await page.url() != apPage(data.country)+c+"/"+f) console.log(c+": found redirected/unexpected ap page: ", await page.url(), "expected :", apPage(data.country)+c+"/"+f);
-        await page.goto(apPage(data.country)+c+"/"+f);
+        if (await page.url() != apPage(data.country)+c+"/"+data.fg_id) console.log(c+": found redirected/unexpected ap page: ", await page.url(), "expected :", apPage(data.country)+c+"/"+data.fg_id);
+        await page.goto(apPage(data.country)+c+"/"+data.fg_id);
     }
 }
 
@@ -273,12 +289,15 @@ async function b_wrapper(_, c, data, delay) {
         const { browser, page } = await connect({
             headless: false,
             args: [
+                "--incognito",
                 "--start-maximized",
                 "--disable-backgrounding-occluded-windows",
                 "--disable-background-timer-throttling",
                 "--disable-renderer-backgrounding",
             ],
-            customConfig: {},
+            customConfig: {
+                chromePath: BROWSER_PATH,
+            },
             turnstile: true,
             connectOption: {
                 defaultViewport: null,
@@ -288,13 +307,18 @@ async function b_wrapper(_, c, data, delay) {
             // @ts-ignore
             proxy: PROXY == null ? {} : {
                 host: PROXY,
-                port: 8888,
+                port: PROXY_PORT,
+                username: PROXY_UN,
+                password: PROXY_PW,
             },
         })
+
         if (err) console.log(c+": recovery restart - sleeping for 1 min");
-        await sleep(err ? 60 * 1 * 1000 : delay);
+        await sleep(err ? 60000 : delay);
         try {
             page.setDefaultTimeout(120 * 1000);
+            await page.emulateTimezone('Europe/London');
+            
             err = false;
             await setHealthInfo(c, 102);
             await create_browser_task(page, c, data, is_failed_restart);
@@ -303,6 +327,9 @@ async function b_wrapper(_, c, data, delay) {
             if (e == 'reload') {
                 console.log(c+": Scheduled reload in progress...");
                 is_failed_restart = false;
+            } else if (e == 'reloadListener') {
+                console.log(c, ": reloading listener")
+                if (WORKER_TYPE == "INDE") data = await rotateListener(c, data);
             } else {
                 console.log(c+": Encountered error, initiating restart procedure...")
                 if (e instanceof TimeoutError) await setHealthInfo(c, 408);
@@ -330,7 +357,7 @@ async function bg_task_tls_adv() {
 
     console.log(WORKER_ID, "waiting for listener data")
     var resp = await axios.post(
-        "http://backend:8000/internal/getListenerData",
+        `${BACKEND_HOST}/internal/getListenerData`,
         {
             "worker_type": WORKER_TYPE,
             "worker_id": WORKER_ID,
@@ -347,6 +374,9 @@ async function bg_task_tls_adv() {
     console.log("Worker Type: ", WORKER_TYPE);
     console.log("Listeners: ", SUPPORTED_LISTENERS);
     console.log("Proxy: ", PROXY);
+    console.log("Proxy port: ", PROXY_PORT);
+    console.log("Proxy username: ", PROXY_UN);
+    console.log("Proxy password: ", PROXY_PW);
     const delayIncr = 1000 * 60;  // 1 min delay between listeners, we dont wanna stress out
     let delay = 0;
     for (const center in data) {

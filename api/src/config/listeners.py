@@ -57,7 +57,7 @@ auth_data = {
     'gbMNC2de': {
         'username': 'aspint.de.mnc@proton.me',
         'password': 'Test@123',
-        'fg_id': 2692445,
+        'fg_id': 2709695,
         'country': 'de'
     },
     'gbEDI2de': {
@@ -83,7 +83,7 @@ auth_data = {
     'gbEDI2be': {
         'username': 'aspint.be.edi@proton.me',
         'password': 'Test@123',
-        'fg_id': 1200394,
+        'fg_id': 1208547,
         'country': 'be'
     },
 
@@ -107,4 +107,53 @@ auth_data = {
         'fg_id': 1202133,
         'country': 'ch',
     },
+}
+
+
+rotate1 = {
+    'gbMNC2ch': {
+        'username': 'virora9720@skrak.com',
+        'password': 'Test@123',
+        'fg_id': 1206000,
+        'country': 'ch',
+    },
+    'gbLON2ch': {
+        'username': 'virora9720@skrak.com',
+        'password': 'Test@123',
+        'fg_id': 1206005,
+        'country': 'ch',
+    },
+    'gbLON2be': {
+        'username': "aspint.be.edi@proton.me",
+        'password': 'Test@123',
+        'fg_id': 1208574,
+        'country': 'be',
+    },
+    'gbMNC2be': {
+        'username': 'meroma2662@skrak.com',
+        'password': 'Test@123',
+        'fg_id': 1208578,
+        'country': 'ch'
+    },
+    'gbLON2de': {
+        'username': 'bofifo7117@skrak.com',
+        'password': 'Test@123',
+        'fg_id': 2709692,
+        'country': 'de',
+    },
+    'gbMNC2de': {
+        'username': 'xobov27499@aiworldx.com',
+        'password': 'Test@123',
+        'fg_id': 2709975,
+    }
+}
+
+rotate2 = {
+    'gbLON2de': {
+        'username': 'tafegaj923@exweme.com',
+        'password': 'Test@123',
+        'fg_id': 2709923,
+        'country': 'de'
+    },
+    
 }
