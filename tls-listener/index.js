@@ -151,6 +151,8 @@ const create_browser_task = async (page, c, data, er) => {
     var response_count = 0;
     var prev_status = 0;
 
+    var freloadListener = false;
+
     console.log(c+": loading appointment page")
     await page.on('requestfinished', async (request) => {
         if (!request.url().endsWith('Stage=appointment')){ return }
@@ -175,7 +177,11 @@ const create_browser_task = async (page, c, data, er) => {
                         console.log(c+": CF 429 BLOCK, proxy: ", PROXY)
                     }
                 }
-            } else if (!response.ok() && response_count == (["fr"].includes(data.country) ? 4 : 3)) setHealthInfo(c, 500);
+            } else if ([500].includes(await response.status())) {
+                console.warn("Account := ", JSON.stringify(data), "is blocked, please update, flagging for choosing next listener if any...");
+                freloadListener = true;
+            }
+            else if (!response.ok() && response_count == (["fr"].includes(data.country) ? 4 : 3)) setHealthInfo(c, 500);
             if (request.redirectChain().length === 0 && response.ok()) {
                 await setHealthInfo(c, 200);
                 try {
@@ -246,8 +252,9 @@ const create_browser_task = async (page, c, data, er) => {
         reloadCount++;
 
         console.log(c+': reload count: ' + reloadCount, "out of ", maxRC);
-        if (reloadCount >= maxRC) {
+        if (reloadCount >= maxRC || freloadListener) {
             // todo: make ASSISTIVE able to rotate?
+            freloadListener = false;
             throw "reloadListener";
         }
 
@@ -282,6 +289,7 @@ async function b_wrapper(_, c, data, delay) {
         const { browser, page } = await connect({
             headless: false,
             args: [
+                "--incognito",
                 "--start-maximized",
                 "--disable-backgrounding-occluded-windows",
                 "--disable-background-timer-throttling",
@@ -320,6 +328,7 @@ async function b_wrapper(_, c, data, delay) {
                 console.log(c+": Scheduled reload in progress...");
                 is_failed_restart = false;
             } else if (e == 'reloadListener') {
+                console.log(c, ": reloading listener")
                 if (WORKER_TYPE == "INDE") data = await rotateListener(c, data);
             } else {
                 console.log(c+": Encountered error, initiating restart procedure...")
@@ -365,6 +374,9 @@ async function bg_task_tls_adv() {
     console.log("Worker Type: ", WORKER_TYPE);
     console.log("Listeners: ", SUPPORTED_LISTENERS);
     console.log("Proxy: ", PROXY);
+    console.log("Proxy port: ", PROXY_PORT);
+    console.log("Proxy username: ", PROXY_UN);
+    console.log("Proxy password: ", PROXY_PW);
     const delayIncr = 1000 * 60;  // 1 min delay between listeners, we dont wanna stress out
     let delay = 0;
     for (const center in data) {

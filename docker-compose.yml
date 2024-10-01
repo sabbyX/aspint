@@ -92,29 +92,29 @@ services:
 #    volumes:
 #      - ./gl:/gluetun
 #
-#  proxy-5:
-#    image: qmcgaw/gluetun
-#    cap_add:
-#      - NET_ADMIN
-#    environment:
-#      - VPN_SERVICE_PROVIDER=expressvpn
-#      - OPENVPN_USER=k3tjzlgi132ztpegs6m749d5
-#      - OPENVPN_PASSWORD=lhx877m858kzcggfm1uzz1om
-#
-#      - HTTPPROXY=on
-#      - HTTPPROXY_LOG=on
-#      - HTTPPROXY_STEALTH=on
-#
-#      - SERVER_COUNTRIES=Belgium
-#      - SERVER_HOSTNAME=belgium-ca-version-2.expressnetw.com
-#
-#      - BLOCK_MALICIOUS=off
-#      - BLOCK_SURVEILLANCE=off
-#      - BLOCK_ADS=off
-#      - DOT=off
-#
-#    volumes:
-#      - ./gl:/gluetun
+  # proxy-5:
+  #   image: qmcgaw/gluetun:latest
+  #   cap_add:
+  #     - NET_ADMIN
+  #   environment:
+  #     - VPN_SERVICE_PROVIDER=expressvpn
+  #     - OPENVPN_USER=k3tjzlgi132ztpegs6m749d5
+  #     - OPENVPN_PASSWORD=lhx877m858kzcggfm1uzz1om
+
+  #     - HTTPPROXY=on
+  #     - HTTPPROXY_LOG=on
+  #     - HTTPPROXY_STEALTH=on
+
+  #     - SERVER_COUNTRIES=japan
+  #     - SERVER_CITIES=tokyo
+
+  #     - BLOCK_MALICIOUS=off
+  #     - BLOCK_SURVEILLANCE=off
+  #     - BLOCK_ADS=off
+  #     - DOT=off
+
+  #   volumes:
+  #     - ./gl:/gluetun
 
   proxy-6:
     image: qmcgaw/gluetun
@@ -137,8 +137,6 @@ services:
 
     volumes:
       - ./gl:/gluetun
-    ports:
-      - "7777:8888"
 
   expressvpn:
     container_name: expressvpn
@@ -232,9 +230,7 @@ services:
       WORKER_TYPE: INDE
       SUPPORTED_LISTENERS: gbMNC2de,gbMNC2be,gbMNC2ch
       PROXY: proxy-6
-      PROXY_PORT: 8888
-      BROWSER_PATH: /usr/bin/brave-browser-stable
-      shm_size: 2gb
+    shm_size: 2gb
     depends_on:
       backend:
         condition: service_healthy
