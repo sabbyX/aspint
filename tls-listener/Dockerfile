@@ -3,7 +3,7 @@ RUN npm config set registry https://registry.npmjs.org/
 RUN npm cache clean --force
 # Install necessary dependencies for running Chrome
 RUN apt-get update && apt-get install -y \
-    wget \
+    curl \
     gnupg \
     ca-certificates \
     apt-transport-https \
@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Google Chrome
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
+RUN curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" >> /etc/apt/sources.list.d/brave-browser-release.list    \
     && apt-get update \
-    && apt-get install -y google-chrome-stable \
+    && apt-get install -y brave-browser \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up the working directory in the container

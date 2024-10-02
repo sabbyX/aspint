@@ -44,7 +44,7 @@ async def __int_eval_status(endpoint):
             status = _raw.json()['status']
 
             ipdata = await client.get(endpoint + IP)
-    except TimeoutException:
+    except Exception:
         status = "failed"
         ipdata = ""
     
@@ -134,7 +134,7 @@ async def worker_health():
 
                 if len(filtered) < 1:
                     __int_set_default(resp[country][center], worker)
-                    __int_health_set_error(resp[country][center], "Not found")
+                    __int_health_set_error(resp[country][center], "Disabled" if country in ["fr"] else "Not found")
                     continue
 
                 latest = filtered[0]

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Request, responses, status
 import structlog
 
 from src.cache import get_cache
-from src.config import auth_data
+from src.config import auth_data, rotate1, rotate2
 
 from ..model import TlsAdvListerSlotUpdate, AppointmentTable, ListenerData
 from ..utils import extract_center_code, serialize_stype, sort_feed
@@ -63,15 +63,18 @@ async def check_assist_load(data: ListenerData, cache: Redis = Depends(get_cache
 
 FRELOAD_KEY = "freload:{}:{}"
 
-@router.post('/setForceReload/{wid}/{center}')
+@router.get('/setForceReload/{wid}/{center}')
 async def force_reload(wid: str, center: str, cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
     await cache.set(FRELOAD_KEY.format(wid, center), ex=timedelta(minutes=10))
     return responses.JSONResponse()
 
 
-@router.post('/checkFreload/{wid}/{center}')
+@router.get('/checkFreload/{wid}/{center}')
 async def check_freload(wid: str, center: str, cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
     exists = await cache.exists(FRELOAD_KEY.format(wid, center))
+    if exists:
+        await cache.delete(FRELOAD_KEY.format(wid, center))
+    return responses.JSONResponse({'status': exists})
 
 
 @router.post("/slotUpdateV2/{center}")
@@ -109,3 +112,39 @@ async def slot_update(
         await res[1].delete()
     await doc.save()
     await logger.debug("saved slot info")
+
+ROTATE_KEY = "rotate:{}"
+
+def __int_rotate(rotation: int, center: str) -> tuple[dict[str, str | int], int]:
+    if rotation == 0:
+        if center in rotate1:
+            return rotate1[center], 1
+        elif center in rotate2:
+            return rotate2[center], 2
+        else:
+            return None
+    elif rotation == 1:
+        if center in rotate2:
+            return rotate2[center], 2
+        else:
+            return auth_data[center], 0
+    elif rotation == 2:
+        if center in auth_data:
+            return auth_data[center], 0
+        elif center in rotate1:
+            return rotate1[center], 1
+        else:
+            return None
+
+
+@router.get('/rotateListener/{center}')
+async def rotate_listener(center: str, cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
+    key = ROTATE_KEY.format(center)
+    current_rotation = 0 if not await cache.exists(key) else int(await cache.get(key))
+    unpack = __int_rotate(current_rotation, center)
+    if unpack is not None:
+        data, rotation = unpack
+        await cache.set(key, rotation)
+        return responses.JSONResponse({"status": "ok", "data": data})
+    else:
+        return responses.JSONResponse({"status": "denied"})
