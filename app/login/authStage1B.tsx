@@ -60,7 +60,7 @@ export function AuthStage1B({ className, ...props }: AuthStage1BProps) {
                                         <TooltipTrigger asChild>
                                             <Button type="button"
                                                     variant="outline"
-                                                    onClick={(e) => {
+                                                    onClick={(_) => {
                                                         dispatch(authStage(1))
                                                     }}
                                             >
