@@ -10,12 +10,16 @@ import {Toaster} from "@/components/ui/toaster";
 import {ReactNode} from "react";
 import {usePathname} from "next/navigation";
 
+
+const NavBarAllowedRoutes = ["/autobook"]
+
+
 export function Layout({children}: Readonly<{
     children: ReactNode;
 }>) {
 
     const pathname = usePathname();
-    if (["/login"].includes(pathname)) {
+    if (!NavBarAllowedRoutes.includes(pathname)) {
         return (
             <div className="overflow-auto">
                 {children}
