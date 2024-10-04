@@ -86,6 +86,7 @@ export function AuthStage1B({ className, ...props }: AuthStage1BProps) {
                                 onChange={handleChange}
                                 value={formData.password}
                                 required
+                                autoFocus
                             />
                         </div>
                         <Button type="submit"
