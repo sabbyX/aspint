@@ -14,18 +14,40 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
 
     const authStage = useSelector<IRootState, number>(state => state.AuthStage);
 
+    let children = (
+        <>
+        You shouldn&apos;t see this. Something went wrong! Contact Developer
+        </>
+    );
+    let context_text = "{context}";
     switch (authStage) {
         case 1:
-            return <AuthStage1A />
+            children = <AuthStage1A />;
+            context_text = "Enter your Email below to login";
+            break;
         case 2:
-            return <AuthStage1B />
+            context_text = "Enter your password below to login";
+            children = <AuthStage1B />;
+            break;
         case 3:
-            return <AuthCodeStage />
+            context_text = "Enter auth code you've received below to login";
+            children = <AuthCodeStage />;
+            break;
     }
 
     return (
-        <>
-        Unexpected Page. Contact Admin
-        </>
+        <div className="lg:p-8">
+            <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+                <div className="flex flex-col space-y-2 text-center">
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                        Login
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        {context_text}
+                    </p>
+                </div>
+                {children}
+            </div>
+        </div>
     )
 }

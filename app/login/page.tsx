@@ -1,13 +1,9 @@
 "use client"
 
-import Image from "next/image"
-import Link from "next/link"
-
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
 import { UserAuthForm } from "@/app/login/user-auth-form"
 import {Provider} from "react-redux";
-import {store} from "../../components/store";
+import {store} from "@/components/store";
+import {useSelector} from "react-redux";
 
 export default function AuthenticationPage() {
     return (
@@ -39,19 +35,7 @@ export default function AuthenticationPage() {
                             </blockquote>
                         </div>
                     </div>
-                    <div className="lg:p-8">
-                        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-                            <div className="flex flex-col space-y-2 text-center">
-                                <h1 className="text-2xl font-semibold tracking-tight">
-                                    Login
-                                </h1>
-                                <p className="text-sm text-muted-foreground">
-                                    Enter your email below to login
-                                </p>
-                            </div>
-                            <UserAuthForm />
-                        </div>
-                    </div>
+                    <UserAuthForm />
                 </div>
             </Provider>
         </>

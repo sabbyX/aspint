@@ -99,13 +99,13 @@ export function AuthStage1A({ className, ...props }: UserAuthFormProps) {
           </span>
                 </div>
             </div>
-            <Button variant="outline" type="button" disabled={isLoading} onClick={(e) => {dispatch(authStage(3))}}>
+            <Button variant="outline" type="button" disabled onClick={(e) => {dispatch(authStage(3))}}>
                 {isLoading ? (
                     <LoaderCircleIcon className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                     <RectangleEllipsis className="mr-2 h-4 w-4" />
                 )}{" "}
-                Auth Code [Manual]
+                Auth Code
             </Button>
         </div>
     )
