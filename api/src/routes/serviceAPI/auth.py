@@ -58,7 +58,7 @@ def __int_gen_access_token(user: User, expires_delta: timedelta | None = None) -
 @router.post("/")
 async def authenticate(payload: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
     user = await __int_authenticate_user(payload.username, payload.password)
-    if payload.username == "DEV":  # DEV ONLY!!! REMOVE IN PROD !!!  TODO
+    if payload.username == "dev@dev.dev":  # DEV ONLY!!! REMOVE IN PROD !!!  TODO
         user = User(username="dev", hashed_password=__int_get_hashed_password('dev'), name="dev")
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
