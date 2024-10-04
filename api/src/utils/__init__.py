@@ -1,14 +1,16 @@
+from .auth import *
+
+# todo: cleanup/move to different files
 import re
 import structlog.stdlib
-from playwright.async_api import Page, Response
 
 from redis.asyncio import Redis
 from redis.commands.json.path import Path
 
 from datetime import date, time
 
-from .model import Config
-from .model.appointment_table import Slot
+from ..model import Config
+from ..model.appointment_table import Slot
 
 logger = structlog.stdlib.get_logger()
 
@@ -35,7 +37,7 @@ def serialize_slot(d: date, t: time) -> str:
 def sort_feed(feed: dict[date, list[Slot]]):
     for k in feed:
         feed[k] = sorted(feed[k], key=lambda x: x.td)
-    
+
     return dict(sorted(feed.items()))
 
 

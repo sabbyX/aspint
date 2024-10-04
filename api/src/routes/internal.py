@@ -7,8 +7,8 @@ from redis.commands.json.path import Path
 from fastapi import APIRouter, Depends, Request, responses, status
 import structlog
 
-from src.cache import get_cache
-from src.config import auth_data, rotate1, rotate2
+from ..cache import get_cache
+from ..config import auth_data, rotate1, rotate2
 
 from ..model import TlsAdvListerSlotUpdate, AppointmentTable, ListenerData
 from ..utils import extract_center_code, serialize_stype, sort_feed
