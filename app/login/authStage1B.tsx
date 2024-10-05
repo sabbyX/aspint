@@ -83,7 +83,10 @@ export function AuthStage1B({ className, ...props }: AuthStage1BProps) {
                                         <FormItem>
                                             <FormMessage />
                                             <FormControl>
-                                                <Input {...field}  placeholder="password" autoFocus/>
+                                                <Input {...field}
+                                                       placeholder="password"
+                                                       disabled={isLoading}
+                                                       autoFocus/>
                                             </FormControl>
                                         </FormItem>
                                     )}

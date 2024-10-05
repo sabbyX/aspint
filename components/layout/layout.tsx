@@ -11,7 +11,7 @@ import {ReactNode} from "react";
 import {usePathname} from "next/navigation";
 
 
-const NavBarAllowedRoutes = ["/autobook"]
+const NavBarAllowedRoutes = ["/autobook", "/", "/status"]
 
 
 export function Layout({children}: Readonly<{
@@ -35,7 +35,7 @@ export function Layout({children}: Readonly<{
                 <div className={cn("block md:!hidden")}>
                     <MobileSidebar/>
                 </div>
-                <aside className="hidden lg:w-[200px] p-2 bg-muted/50 md:flex flex-col lg:flex-row">
+                <aside className="hidden lg:w-[250px] p-2 bg-muted/50 md:flex flex-col lg:flex-row">
                     <SidebarNav/>
                 </aside>
                 <Separator className="lg:h-[calc(100vh-50px)]" orientation="vertical"/>

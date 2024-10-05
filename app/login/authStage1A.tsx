@@ -7,7 +7,6 @@ import { z } from 'zod';
 import {RectangleEllipsis, LoaderCircleIcon, TriangleAlertIcon} from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {ChangeEvent, useEffect, useState} from "react";
 import { useSelector, useDispatch } from 'react-redux';
@@ -25,6 +24,7 @@ const FormSchema = z.object({
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 export function AuthStage1A({ className, ...props }: UserAuthFormProps) {
+
     const dispatch = useDispatch<IAppDispatch>();
     const rAuthUsername = useSelector<IRootState, string>(state => state.AuthUsername);
     const invalidAlert = useSelector<IRootState, boolean>(state => state.InvalidCredentialAlert);
