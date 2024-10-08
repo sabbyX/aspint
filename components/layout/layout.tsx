@@ -40,15 +40,8 @@ export function Layout({children}: Readonly<{
                 </aside>
                 <Separator className="lg:h-[calc(100vh-50px)]" orientation="vertical"/>
                 <div className="flex-1 p-5 overflow-auto">
-                    <ThemeProvider
-                        attribute="class"
-                        defaultTheme="light"
-                        enableSystem
-                        disableTransitionOnChange
-                    >
-                        {children}
-                        <Toaster/>
-                    </ThemeProvider>
+                    {children}
+                    <Toaster/>
                 </div>
             </div>
         </div>

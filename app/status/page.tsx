@@ -4,20 +4,12 @@ import emoji from 'react-easy-emoji'
 import {
     Card,
     CardContent,
-    CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
 import {Button} from "@/components/ui/button";
 
 export default function StatusPage() {
-    const data = {
-        uptimePercentage: 99.95, // Calculated based on uptime in those 5 hours
-        todayUptime: 100,
-        statuses: Array(50).fill('up').concat(Array(10).fill('down')), // Simulating service status for 60 intervals
-    };
-
     return (
         <div className="flex items-center xl:grid flex-col grid-cols-2 gap-10">
             <Card className="w-[450px] lg:justify-self-end">
@@ -33,21 +25,21 @@ export default function StatusPage() {
                             <p className="text-sm font-semibold leading-none">London</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbLON2be"/>
                     </div>
                     <div>
                         <div className="flex flex-row">
                             <p className="text-sm font-semibold leading-none">Manchester</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbMNC2be"/>
                     </div>
                     <div>
                         <div className="flex flex-row">
                             <p className="text-sm font-semibold leading-none">Edinburgh</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbEDI2be"/>
                     </div>
                 </CardContent>
             </Card>
@@ -64,21 +56,21 @@ export default function StatusPage() {
                             <p className="text-sm font-semibold leading-none">London</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbLON2fr"/>
                     </div>
                     <div>
                         <div className="flex flex-row">
                             <p className="text-sm font-semibold leading-none">Manchester</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbMNC2fr"/>
                     </div>
                     <div>
                         <div className="flex flex-row">
                             <p className="text-sm font-semibold leading-none">Edinburgh</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbEDI2fr"/>
                     </div>
                 </CardContent>
             </Card>
@@ -95,21 +87,21 @@ export default function StatusPage() {
                             <p className="text-sm font-semibold leading-none">London</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbLON2de"/>
                     </div>
                     <div>
                         <div className="flex flex-row">
                             <p className="text-sm font-semibold leading-none">Manchester</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbMNC2de"/>
                     </div>
                     <div>
                         <div className="flex flex-row">
                             <p className="text-sm font-semibold leading-none">Edinburgh</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbEDI2de"/>
                     </div>
                 </CardContent>
             </Card>
@@ -126,21 +118,21 @@ export default function StatusPage() {
                             <p className="text-sm font-semibold leading-none">London</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbLON2ch"/>
                     </div>
                     <div>
                         <div className="flex flex-row">
                             <p className="text-sm font-semibold leading-none">Manchester</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbMNC2ch"/>
                     </div>
                     <div>
                         <div className="flex flex-row">
                             <p className="text-sm font-semibold leading-none">Edinburgh</p>
                             <Badge className="ml-auto" variant="destructive">Failing</Badge>
                         </div>
-                        <UptimeBar data={data}/>
+                        <UptimeBar center="gbEDI2ch"/>
                     </div>
                 </CardContent>
             </Card>

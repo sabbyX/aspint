@@ -85,6 +85,7 @@ export function AuthStage1B({ className, ...props }: AuthStage1BProps) {
                                             <FormControl>
                                                 <Input {...field}
                                                        placeholder="password"
+                                                       type="password"
                                                        disabled={isLoading}
                                                        autoFocus/>
                                             </FormControl>
