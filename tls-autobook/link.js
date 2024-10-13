@@ -6,6 +6,8 @@ export function getHomePage(country, center) {
     switch (country) {
         case "ch":
             return `https://visas-ch.tlscontact.com/visa/gb/${center}/home`;
+        case "fr":
+            return `https://fr.tlscontact.com/visa/gb/${center}/home`;
     }
 }
 

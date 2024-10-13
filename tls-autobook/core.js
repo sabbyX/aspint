@@ -27,13 +27,14 @@ async function autobookCore(
     var {browser, page} = await connect({
         headless: false,
         args: [
-            "--incognito",
             "--start-maximized",
             "--disable-backgrounding-occluded-windows",
             "--disable-background-timer-throttling",
             "--disable-renderer-backgrounding",
         ],
-        customConfig: {},
+        customConfig: {
+            chromePath: "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+        },
         turnstile: true,
         connectOption: {
             defaultViewport: null,
@@ -46,7 +47,11 @@ async function autobookCore(
 //            port: 8888,
 //        },
     });
+    let session = await page.target().createCDPSession();
+    var {windowId} = await session.send('Browser.getWindowForTarget');
+    await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
 
+    page.setDefaultTimeout(120000)
     console.log(center, username, "loading homepage");
     await Promise.all([
         page.goto(
@@ -108,12 +113,20 @@ async function autobookCore(
     console.log(country, username, "Login procedure finished");
 
     const cookies = await page.cookies();
+    let essentialCookies = []
+    for (let i = 0; i < cookies.length; i++) {
+        const currCookie = cookies[i];
+        if (!currCookie.name.includes("cf") && !currCookie.name.includes("datadome") && !currCookie.name.includes("pk_ses") && !currCookie.name.includes("stg"))  {
+            console.log(currCookie.name);
+            essentialCookies.push(currCookie);
+        } else console.log("avoiding ", currCookie.name)
+    }
+    console.log(essentialCookies.toString());
     await browser.close()
     await sleep(10000);
     var {browser, page} = await connect({
         headless: false,
         args: [
-            "--incognito",
             "--start-maximized",
             "--disable-backgrounding-occluded-windows",
             "--disable-background-timer-throttling",
@@ -127,15 +140,21 @@ async function autobookCore(
         disableXvfb: false,
         ignoreAllFlags: false,
     });
+    session = await page.target().createCDPSession();
+    var {windowId} = await session.send('Browser.getWindowForTarget');
+    await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
 
-    await sleep(10000)
-    await page.setCookie(...cookies);
+
+    page.setDefaultTimeout(120000)
+    await page.setCookie(...essentialCookies);
     await page.goto(getHomePage(country, center));
     await sleep(9999999);
+
+    // document.getElementsByClassName("tls-appointment-time-picker")[0].__vue__.selectSlot(data, {hour, type})
 }
 
 autobookCore(
-    "tojod58333@skrak.com",
+    "aspint.ch",
     "Test@123",
     0,
     "ch",
