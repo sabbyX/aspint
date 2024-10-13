@@ -3,8 +3,6 @@ starlette~=0.38.2
 pydantic~=2.8.2
 email-validator
 httpx~=0.27.2
-playwright~=1.46.0
-playwright-recaptcha
 uvicorn[standard]~=0.30.6
 structlog~=24.4.0
 motor~=3.5.1
@@ -13,6 +11,10 @@ beanie
 redis[hiredis]
 structlog-sentry
 sentry-sdk[pymongo, fastapi]
+passlib
+bcrypt==4.0.1
+pyjwt[crypto]
+pandas
 passlib
 bcrypt==4.0.1
 pyjwt[crypto]

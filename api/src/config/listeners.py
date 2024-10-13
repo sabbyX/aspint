@@ -1,9 +1,9 @@
 
 auth_data = {
     'gbLON2fr': {
-        'username': 'cobeve6079@ofionk.com',  # FRA1LON*
+        'username': 'jeepeo55@gmail.com',  # FRA1LON*
         'password': 'Test@123',
-        'fg_id': 16887585,
+        'fg_id': 17138877,
         'country': 'fr'
     },
     'gbLON2fr-1': {

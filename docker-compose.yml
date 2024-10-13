@@ -257,7 +257,7 @@ services:
     environment:
       WORKER_ID: fr-1
       WORKER_TYPE: ASSISTIVE
-      SUPPORTED_LISTENERS: gbLON2fr-1
+      SUPPORTED_LISTENERS: gbLON2fr
       PROXY: proxy-1
       PROXY_PORT: 8888
     shm_size: 2gb

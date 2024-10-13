@@ -56,3 +56,7 @@ def serialize_stype(ty: str):
             return "normal"
         case _:
             return ty
+
+
+def filter_slot(s: dict[str, int], a_type: str) -> list[dict[str, str]]:
+    return [{'td': td, 'type': a_type} for td, avail in s.items() if avail == 1]

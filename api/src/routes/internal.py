@@ -1,18 +1,14 @@
-import asyncio
 from datetime import timedelta
-import random
 import pymongo
 from redis.asyncio import Redis
-from redis.commands.json.path import Path
-from fastapi import APIRouter, Depends, Request, responses, status
+from fastapi import APIRouter, Depends, responses, status
 import structlog
 
 from ..cache import get_cache
 from ..config import auth_data, rotate1, rotate2
 
-from ..model import TlsAdvListerSlotUpdate, AppointmentTable, ListenerData
-from ..utils import extract_center_code, serialize_stype, sort_feed
-from ..tlshelper import filter_slot
+from ..model import AppointmentTable, ListenerData
+from ..utils import extract_center_code, sort_feed, filter_slot
 
 logger = structlog.stdlib.get_logger()
 
@@ -20,7 +16,7 @@ router = APIRouter(prefix="/internal")
 
 
 @router.post('/getListenerData')
-async def get_listener_data(data: ListenerData, dep_inj_cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
+async def get_listener_data(data: ListenerData, _cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
     assert data.listeners is not None
     resp = {}
 
@@ -64,9 +60,9 @@ async def check_assist_load(data: ListenerData, cache: Redis = Depends(get_cache
 FRELOAD_KEY = "freload:{}:{}"
 
 @router.get('/setForceReload/{wid}/{center}')
-async def force_reload(wid: str, center: str, cache: Redis = Depends(get_cache)) -> responses.JSONResponse:
-    await cache.set(FRELOAD_KEY.format(wid, center), ex=timedelta(minutes=10))
-    return responses.JSONResponse()
+async def force_reload(wid: str, center: str, cache: Redis = Depends(get_cache)) -> responses.HTMLResponse:
+    await cache.set(FRELOAD_KEY.format(wid, center), 1, ex=timedelta(minutes=10))
+    return responses.HTMLResponse(status_code=status.HTTP_200_OK)
 
 
 @router.get('/checkFreload/{wid}/{center}')
@@ -116,6 +112,7 @@ async def slot_update(
 ROTATE_KEY = "rotate:{}"
 
 def __int_rotate(rotation: int, center: str) -> tuple[dict[str, str | int], int]:
+    # todo: improv
     if rotation == 0:
         if center in rotate1:
             return rotate1[center], 1
