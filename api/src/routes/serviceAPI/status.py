@@ -10,51 +10,6 @@ from ...utils import get_current_user
 
 router = APIRouter(prefix="/status")
 
-
-test_logs = [
-    {
-        "index": "2024-10-06 03:40:57",
-        "health_code": 200,
-    },
-    {
-        "index": "2024-10-06 04:11:00",
-        "health_code": 200,
-    },
-    {
-        "index": "2024-10-06 05:07:20",
-        "health_code": 200,
-    },
-    {
-        "index": "2024-10-06 03:53:51",
-        "health_code": 200,
-    },
-    {
-        "index": "2024-10-06 05:28:26",
-        "health_code": 500,
-    },
-    {
-        "index": "2024-10-06 11:13:24",
-        "health_code": 200,
-    },
-    {
-        "index": "2024-10-06 07:05:27",
-        "health_code": 200,
-    },
-    {
-        "index": "2024-10-06 11:54:20",
-        "health_code": 200,
-    },
-    {
-        "index": "2024-10-06 10:22:37",
-        "health_code": 500,
-    },
-    {
-        "index": "2024-10-06 07:48:56",
-        "health_code": 200,
-    }
-]
-
-
 # todo: abstract with internal API used by tls-listener/notifier
 def __int_set_health_level(health_code: int) -> str:
     match health_code:
@@ -80,30 +35,39 @@ class HealthView(BaseModel):
         projection = { "_id": 0, "index": "$created_at", "health_code": "$health_code" }
 
 
-async def __int_get_df_status(center: str, worker_id: Optional[str] = None) -> list[dict[str, str]]:
+class __IntPayloadModel(BaseModel):
+    interval: datetime
+    status: str
+    code: int
+
+
+async def __int_get_df_status(center: str, worker_id: Optional[str] = None) -> list[__IntPayloadModel]:
     upt_array = []
     if worker_id and False:
-        #logs = await ListenerHealthData.find_many(ListenerHealthData.worker_id == worker_id, ListenerHealthData.center == center).project(HealthView).to_list()
-        logs = test_logs
+        logs = await ListenerHealthData.find_many(ListenerHealthData.worker_id == worker_id, ListenerHealthData.center == center).project(HealthView).to_list()
     else:
-        # logs = await ListenerHealthData.find(ListenerHealthData.center == center).project(HealthView).to_list()
-        logs = test_logs
+        logs = await ListenerHealthData.find(ListenerHealthData.center == center).project(HealthView).to_list()
 
-    df = pd.DataFrame(logs)
+    if len(logs) == 0: return []
+
+    logs_json = [x.model_dump() for x in logs]
+    df = pd.DataFrame(logs_json)
     df['index'] = pd.to_datetime(df['index'])
     grouped: pd.DataFrame = df.groupby(pd.Grouper(key="index", freq="5Min", label="right")).max()
     last_data = None
-    for code in grouped.values:
-        if not pd.isna(code):
-            resp_data = {"status": __int_set_health_level(int(code[0].item())), "code": int(code[0].item())}
+    for idx, _wid, code in zip(grouped.index, grouped.worker_id, grouped.health_code): # type: pd.Timestamp, str, float
+        # todo: support wid
+        if code.is_integer():
+            resp_data = __IntPayloadModel(interval=idx.to_pydatetime(), status=__int_set_health_level(int(code)), code=int(code))
             last_data = resp_data
         else:
-            assert last_data is not None  # last_data is 'guaranteed' by pandas :think:
+            assert last_data is not None  # last_data is 'guaranteed' by pandas
             resp_data = last_data
         upt_array.append(resp_data)
     return upt_array[-60:]
 
 
 @router.get("/")
-async def status_root(_: Annotated[User, Depends(get_current_user)], center: str, worker_id: Optional[str] = None):
-    return __int_get_df_status(center)
+async def status_root(_: Annotated[User, Depends(get_current_user)], center: str, worker_id: Optional[str] = None) -> list[__IntPayloadModel]:
+    status_arr = await __int_get_df_status(center, worker_id)
+    return status_arr

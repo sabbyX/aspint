@@ -3,12 +3,18 @@
 import {cookies} from "next/headers";
 import {redirect} from "next/navigation";
 
+export interface IStatusPayload {
+    interval: string,
+    code: number,
+    status: string
+}
+
 export async function retrieveUptArray(center: string) {
-    const APIEndpoint = new URL("http://localhost:8000/service/status");
+    const APIEndpoint = new URL("http://localhost:8000/service/status/");
     APIEndpoint.searchParams.set("center", center)
 
     const headers = new Headers({
-        "Authorization": `Bearer ${cookies().get("token")}`
+        "Authorization": `Bearer ${cookies().get("JSESSIONID")?.value}`
     })
 
     try {
@@ -16,10 +22,9 @@ export async function retrieveUptArray(center: string) {
             method: "GET",
             headers: headers
         })
-        if (resp.status == 403) { redirect("/login") }
+        if ([401].includes(resp.status)) { redirect("/login") }
         if (resp.ok) {
-            const respJSON = await resp.json();
-            let uptArray: Array<object> = respJSON.uptArray;
+            let uptArray: Array<IStatusPayload> = await resp.json();
             if (uptArray.length < 60) {
                 const remainingArrLength = 60 - uptArray.length
                 uptArray = Array(remainingArrLength).fill({"status": "INDETERMINATE", "code": 0}).concat(uptArray)

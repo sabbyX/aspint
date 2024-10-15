@@ -20,120 +20,48 @@ export default function StatusPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">London</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbLON2be"/>
-                    </div>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">Manchester</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbMNC2be"/>
-                    </div>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">Edinburgh</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbEDI2be"/>
-                    </div>
+                    <UptimeBar centerCode="gbLON2be" center="London" />
+                    <UptimeBar centerCode="gbMNC2be" center="Manchester" />
+                    <UptimeBar centerCode="gbEDI2be" center="Edinburgh" />
                 </CardContent>
             </Card>
             <Card className="w-[450px]">
                 <CardHeader>
                     <div className="flex flex-row">
                         <CardTitle className="flex flex-row self-center">{emoji('🇫🇷 France')}</CardTitle>
-                        <Button className="ml-auto" variant="link">Detailed logs</Button>
+                        <Button className="ml-auto" variant="link">View detailed logs</Button>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">London</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbLON2fr"/>
-                    </div>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">Manchester</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbMNC2fr"/>
-                    </div>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">Edinburgh</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbEDI2fr"/>
-                    </div>
+                    <UptimeBar centerCode="gbLON2fr" center="London" />
+                    <UptimeBar centerCode="gbMNC2fr" center="Manchester" />
+                    <UptimeBar centerCode="gbEDI2fr" center="Edinburgh" />
                 </CardContent>
             </Card>
             <Card className="w-[450px] lg:justify-self-end">
                 <CardHeader>
                     <div className="flex flex-row">
                         <CardTitle className="flex flex-row self-center">{emoji('🇩🇪 Germany')}</CardTitle>
-                        <Button className="ml-auto" variant="link">Detailed logs</Button>
+                        <Button className="ml-auto" variant="link">View detailed logs</Button>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">London</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbLON2de"/>
-                    </div>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">Manchester</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbMNC2de"/>
-                    </div>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">Edinburgh</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbEDI2de"/>
-                    </div>
+                    <UptimeBar centerCode="gbLON2de" center="London" />
+                    <UptimeBar centerCode="gbMNC2de" center="Manchester" />
+                    <UptimeBar centerCode="gbEDI2de" center="Edinburgh" />
                 </CardContent>
             </Card>
             <Card className="w-[450px]">
                 <CardHeader>
                     <div className="flex flex-row">
                         <CardTitle className="flex flex-row self-center">{emoji('🇨🇭 Switzerland')}</CardTitle>
-                        <Button className="ml-auto" variant="link">Detailed logs</Button>
+                        <Button className="ml-auto" variant="link">View detailed logs</Button>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">London</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbLON2ch"/>
-                    </div>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">Manchester</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbMNC2ch"/>
-                    </div>
-                    <div>
-                        <div className="flex flex-row">
-                            <p className="text-sm font-semibold leading-none">Edinburgh</p>
-                            <Badge className="ml-auto" variant="destructive">Failing</Badge>
-                        </div>
-                        <UptimeBar center="gbEDI2ch"/>
-                    </div>
+                    <UptimeBar centerCode="gbLON2ch" center="London" />
+                    <UptimeBar centerCode="gbMNC2ch" center="Manchester" />
+                    <UptimeBar centerCode="gbEDI2ch" center="Edinburgh"/>
                 </CardContent>
             </Card>
         </div>

@@ -11,7 +11,7 @@ SECRET_KEY = "56b0d4468a687801564a4541df91467cc869e78283cf15f552c6a48fb01a094f"
 ALGO = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/authenticate")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/service/authenticate")
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     credentials_exception = HTTPException(
