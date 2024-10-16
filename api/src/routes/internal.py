@@ -8,6 +8,7 @@ from ..cache import get_cache
 from ..config import auth_data, rotate1, rotate2
 
 from ..model import AppointmentTable, ListenerData
+from ..common import FRELOAD_KEY, force_restart_listener
 from ..utils import extract_center_code, sort_feed, filter_slot
 
 logger = structlog.stdlib.get_logger()
@@ -57,12 +58,9 @@ async def check_assist_load(data: ListenerData, cache: Redis = Depends(get_cache
     return responses.JSONResponse({'status': exists, 'slpt': ty})
 
 
-FRELOAD_KEY = "freload:{}:{}"
-
 @router.get('/setForceReload/{wid}/{center}')
 async def force_reload(wid: str, center: str, cache: Redis = Depends(get_cache)) -> responses.HTMLResponse:
-    await cache.set(FRELOAD_KEY.format(wid, center), 1, ex=timedelta(minutes=10))
-    return responses.HTMLResponse(status_code=status.HTTP_200_OK)
+    return await force_restart_listener(wid, center, cache)
 
 
 @router.get('/checkFreload/{wid}/{center}')

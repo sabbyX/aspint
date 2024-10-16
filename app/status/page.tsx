@@ -1,5 +1,7 @@
+"use client"
+
 import {UptimeBar} from '@/components/uptimeBar';
-import {Badge} from "@/components/ui/badge";
+import {RotateCwIcon, RefreshCwIcon, TriangleAlertIcon,} from 'lucide-react'
 import emoji from 'react-easy-emoji'
 import {
     Card,
@@ -8,62 +10,179 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import {Button} from "@/components/ui/button";
+import {useState} from "react";
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+
+import {
+    Alert,
+    AlertDescription,
+    AlertTitle,
+} from "@/components/ui/alert"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
+import {z} from "zod";
+import {toast} from "@/components/ui/use-toast";
+import {useForm} from "react-hook-form";
+import {zodResolver} from "@hookform/resolvers/zod";
+import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+import {listenerRestartAction} from "@/app/actions/freloadAction";
+
+const RLForm = z.object({
+    center: z
+        .string({
+            required_error: "Please select the center to restart listener.",
+        }),
+})
+
 
 export default function StatusPage() {
+    const [isLoading, setLoading] = useState<boolean>(false);
+
     return (
-        <div className="flex items-center xl:grid flex-col grid-cols-2 gap-10">
-            <Card className="w-[450px] lg:justify-self-end">
-                <CardHeader>
-                    <div className="flex flex-row">
-                        <CardTitle className="flex flex-row self-center">{emoji('🇧🇪 Belgium')}</CardTitle>
-                        <Button className="ml-auto" variant="link">View detailed logs</Button>
+        <TooltipProvider>
+                <div>
+                    <div className="mb-10 flex flex-row">
+                        <h2 className="text-xl md:text-3xl font-semibold tracking-tight first:mt-0">
+                            📈 Status
+                        </h2>
+                        <Button className="ml-auto" variant="ghost" onClick={() => {
+                            window.location.reload();
+                            setLoading(true);
+                        }}>
+                            <RotateCwIcon className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                            Reload
+                        </Button>
                     </div>
-                </CardHeader>
-                <CardContent>
-                    <UptimeBar centerCode="gbLON2be" center="London" />
-                    <UptimeBar centerCode="gbMNC2be" center="Manchester" />
-                    <UptimeBar centerCode="gbEDI2be" center="Edinburgh" />
-                </CardContent>
-            </Card>
-            <Card className="w-[450px]">
-                <CardHeader>
-                    <div className="flex flex-row">
-                        <CardTitle className="flex flex-row self-center">{emoji('🇫🇷 France')}</CardTitle>
-                        <Button className="ml-auto" variant="link">View detailed logs</Button>
+                    <div className="flex items-center xl:grid flex-col grid-cols-2 gap-10">
+                        {statusCardGen("Belgium", [{centerCode: "gbLON2be", workerId: null}, {centerCode: "gbMNC2be", workerId: null}, {centerCode: "gbEDI2be", workerId: null}])}
+                        {statusCardGen("France", [{centerCode: "gbLON2fr", workerId: null}, {centerCode: "gbMNC2fr", workerId: null}, {centerCode: "gbEDI2fr", workerId: null}], true)}
+                        {statusCardGen("Germany", [{centerCode: "gbLON2de", workerId: null}, {centerCode: "gbMNC2de", workerId: null}, {centerCode: "gbEDI2de", workerId: null}])}
+                        {statusCardGen("Switzerland", [{centerCode: "gbLON2ch", workerId: null}, {centerCode: "gbMNC2ch", workerId: null}, {centerCode: "gbEDI2ch", workerId: null}], true)}
                     </div>
-                </CardHeader>
-                <CardContent>
-                    <UptimeBar centerCode="gbLON2fr" center="London" />
-                    <UptimeBar centerCode="gbMNC2fr" center="Manchester" />
-                    <UptimeBar centerCode="gbEDI2fr" center="Edinburgh" />
-                </CardContent>
-            </Card>
-            <Card className="w-[450px] lg:justify-self-end">
-                <CardHeader>
-                    <div className="flex flex-row">
-                        <CardTitle className="flex flex-row self-center">{emoji('🇩🇪 Germany')}</CardTitle>
-                        <Button className="ml-auto" variant="link">View detailed logs</Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <UptimeBar centerCode="gbLON2de" center="London" />
-                    <UptimeBar centerCode="gbMNC2de" center="Manchester" />
-                    <UptimeBar centerCode="gbEDI2de" center="Edinburgh" />
-                </CardContent>
-            </Card>
-            <Card className="w-[450px]">
-                <CardHeader>
-                    <div className="flex flex-row">
-                        <CardTitle className="flex flex-row self-center">{emoji('🇨🇭 Switzerland')}</CardTitle>
-                        <Button className="ml-auto" variant="link">View detailed logs</Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <UptimeBar centerCode="gbLON2ch" center="London" />
-                    <UptimeBar centerCode="gbMNC2ch" center="Manchester" />
-                    <UptimeBar centerCode="gbEDI2ch" center="Edinburgh"/>
-                </CardContent>
-            </Card>
-        </div>
+                </div>
+        </TooltipProvider>
+    )
+}
+
+interface centerData { centerCode: "gbLON2be" | "gbLON2de" | "gbLON2ch" | "gbLON2fr" | "gbMNC2de" | "gbMNC2fr" | "gbMNC2be" | "gbMNC2ch" | "gbEDI2be" | "gbEDI2ch" | "gbEDI2fr" | "gbEDI2de", workerId: string | null }
+
+function __int_get_center_name(ccode: string) {
+    if (ccode.includes("LON")) return "London"
+    else if (ccode.includes("MNC")) return "Manchester"
+    else return "Edinburgh"
+}
+
+function __int_get_country_flag(c: string) {
+    switch (c.toLowerCase()) {
+        case "switzerland": return "🇨🇭"
+        case "belgium": return "🇧🇪"
+        case "france": return "🇫🇷"
+        case "germany": return "🇩🇪"
+        default: return "⭕"
+    }
+}
+
+const statusCardGen = (country: string, centers: Array<centerData>, left: boolean = false) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const form = useForm<z.infer<typeof RLForm>>({
+        resolver: zodResolver(RLForm),
+    })
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [open, setOpen] = useState(false);
+
+    async function onSubmit(data: z.infer<typeof RLForm>) {
+        await listenerRestartAction(country.toLowerCase(), data.center, null);
+        //                                                    todo: wid ^^^^
+        toast({
+            title: "Restart command sent to selected listeners",
+            description: `Sent the restart command to following listener(s) ${data.center.toUpperCase()} of ${country}`
+        })
+        setOpen(false);
+    }
+
+    return (
+        <Tooltip>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <Card className={`w-[450px] ${left ? 'lg:justify-self-start' : 'lg:justify-self-end'}`}>
+                    {/* todo: remove workaround ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/}
+                    <CardHeader>
+                        <div className="flex flex-row">
+                            <CardTitle className="flex flex-row self-center">{emoji(`${__int_get_country_flag(country)} ${country}`)}</CardTitle>
+                            <Button className="ml-auto" variant="ghost">View detailed logs</Button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button className="ml-2" variant="ghost" size="icon" onClick={() => setOpen(true)}>
+                                            <RefreshCwIcon className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Restart Listener
+                                    </TooltipContent>
+                                </Tooltip>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle className="mb-5">Restart Listener</DialogTitle>
+                                    <Alert>
+                                        <TriangleAlertIcon className="h-5 w-5" />
+                                        <AlertTitle>Delayed Restart</AlertTitle>
+                                        <AlertDescription>Listener will takes, at max 5 minutes to receive restart command, and further for restart process to complete.</AlertDescription>
+                                    </Alert>
+                                </DialogHeader>
+                                <Form {...form}>
+                                    <form onSubmit={form.handleSubmit(onSubmit)}>
+                                        <div className="grid gap-4 py-4 w-[200px] space-y-6">
+                                            <FormField
+                                                control={form.control}
+                                                name="center"
+                                                render={({field}) => (
+                                                    <FormItem>
+                                                        <FormLabel>Center</FormLabel>
+                                                        <Select onValueChange={field.onChange}
+                                                                defaultValue={field.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select center to be restarted."/>
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="all">All</SelectItem>
+                                                                <SelectItem value="lon">London</SelectItem>
+                                                                <SelectItem value="mnc">Manchester</SelectItem>
+                                                                <SelectItem value="edi">Edinburgh</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <DialogFooter>
+                                            <Button type="submit">Restart Listener</Button>
+                                        </DialogFooter>
+                                    </form>
+                                </Form>
+                            </DialogContent>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {centers.map((cdata, i) => (
+                            <UptimeBar key={i} centerCode={cdata.centerCode} center={__int_get_center_name(cdata.centerCode)} />
+                        ))}
+                    </CardContent>
+                </Card>
+            </Dialog>
+        </Tooltip>
     )
 }

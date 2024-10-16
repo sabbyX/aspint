@@ -52,7 +52,7 @@ export function AuthStage1A({ className, ...props }: UserAuthFormProps) {
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <div className="grid gap-2">
                         <Alert variant="destructive" hidden={!invalidAlert}>
-                            <TriangleAlertIcon className="h-5, w-5"/>
+                            <TriangleAlertIcon className="h-5 w-5"/>
                             <AlertTitle>Error</AlertTitle>
                             <AlertDescription>
                                 Invalid Username or Password.
