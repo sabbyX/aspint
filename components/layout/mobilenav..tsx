@@ -1,32 +1,8 @@
 "use client"
 
-import {LogsIcon, Menu, ServerIcon, Settings2Icon, UserPlus2} from "lucide-react";
-
-const items = [
-    {
-        title: "New Application",
-        icon: UserPlus2,
-        href: "/",
-    },
-    {
-        title: "View Instances",
-        icon: ServerIcon,
-        href: "/view-instances",
-    },
-    {
-        title: "Logs",
-        icon: LogsIcon,
-        href: "/internal-logs",
-    },
-    {
-        title: "Backend Control",
-        icon: Settings2Icon,
-        href: "/backend-control",
-    },
-]
+import {Menu} from "lucide-react";
 
 import React, { useState, useEffect } from "react";
-import { MenuIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/layout/sidenav";
 

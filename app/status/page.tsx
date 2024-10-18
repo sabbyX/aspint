@@ -1,36 +1,15 @@
 "use client"
 
 import {UptimeBar} from '@/components/uptimeBar';
-import {RotateCwIcon, RefreshCwIcon, TriangleAlertIcon,} from 'lucide-react'
+import {RefreshCwIcon, RotateCwIcon, TriangleAlertIcon,} from 'lucide-react'
 import emoji from 'react-easy-emoji'
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
+import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
 import {Button} from "@/components/ui/button";
 import {useState} from "react";
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
+import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,} from "@/components/ui/dialog"
 
-import {
-    Alert,
-    AlertDescription,
-    AlertTitle,
-} from "@/components/ui/alert"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
+import {Alert, AlertDescription, AlertTitle,} from "@/components/ui/alert"
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {z} from "zod";
 import {toast} from "@/components/ui/use-toast";
@@ -38,6 +17,7 @@ import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
 import {listenerRestartAction} from "@/app/actions/freloadAction";
+import {getCountryFlag} from "@/components/shared/utils";
 
 const RLForm = z.object({
     center: z
@@ -84,16 +64,6 @@ function __int_get_center_name(ccode: string) {
     else return "Edinburgh"
 }
 
-function __int_get_country_flag(c: string) {
-    switch (c.toLowerCase()) {
-        case "switzerland": return "🇨🇭"
-        case "belgium": return "🇧🇪"
-        case "france": return "🇫🇷"
-        case "germany": return "🇩🇪"
-        default: return "⭕"
-    }
-}
-
 const statusCardGen = (country: string, centers: Array<centerData>, left: boolean = false) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const form = useForm<z.infer<typeof RLForm>>({
@@ -115,11 +85,11 @@ const statusCardGen = (country: string, centers: Array<centerData>, left: boolea
     return (
         <Tooltip>
             <Dialog open={open} onOpenChange={setOpen}>
-                <Card className={`w-[450px] ${left ? 'lg:justify-self-start' : 'lg:justify-self-end'}`}>
+                <Card className={`backdrop-blur-xl bg-background/30 w-[450px] ${left ? 'lg:justify-self-start' : 'lg:justify-self-end'}`}>
                     {/* todo: remove workaround ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/}
                     <CardHeader>
                         <div className="flex flex-row">
-                            <CardTitle className="flex flex-row self-center">{emoji(`${__int_get_country_flag(country)} ${country}`)}</CardTitle>
+                            <CardTitle className="flex flex-row self-center">{emoji(`${getCountryFlag(country)} ${country}`)}</CardTitle>
                             <Button className="ml-auto" variant="ghost">View detailed logs</Button>
                                 <Tooltip>
                                     <TooltipTrigger asChild>

@@ -28,18 +28,18 @@ export function Layout({children}: Readonly<{
     }
 
     return (
-        <div className="md:block">
+        <div className="md:block bg-[radial-gradient(100%_50%_at_50%_0%,rgba(0,163,255,0.13)_0,rgba(0,163,255,0)_50%,rgba(0,163,255,0)_100%)] dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-slate-900 dark:to-black dark:text-white">
             <TopBar/>
             <Separator/>
-            <div className="flex flex-col lg:flex-row">
+            <div className="flex h-100vh flex-col lg:flex-row">
                 <div className={cn("block md:!hidden")}>
                     <MobileSidebar/>
                 </div>
-                <aside className="hidden lg:w-[250px] p-2 bg-muted/50 md:flex flex-col lg:flex-row">
+                <aside className="hidden lg:w-[250px] p-2 md:flex flex-col lg:flex-row">
                     <SidebarNav/>
                 </aside>
-                <Separator className="lg:h-[calc(100vh-50px)]" orientation="vertical"/>
-                <div className="flex-1 p-5 overflow-auto">
+                <Separator className="lg:h-[calc(100vh-55px)]" orientation="vertical"/>
+                <div className="flex-1 p-5 overflow-auto shadow-md">
                     {children}
                     <Toaster/>
                 </div>

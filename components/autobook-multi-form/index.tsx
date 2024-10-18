@@ -1,0 +1,162 @@
+"use client";
+
+import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
+import { useEffect, useState } from "react";
+import {FormProvider, useForm, UseFormReturn} from "react-hook-form";
+
+import {StepperIndicator, stepsData} from "../shared/stepper-indicator";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Button } from "../ui/button";
+import { toast } from "../ui/use-toast";
+import TLSInfoForm from "./t-l-s-info-form";
+import CountrySelection from "./country-selection";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form"
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {z} from "zod";
+import {addDays} from "date-fns";
+import {zodResolver} from "@hookform/resolvers/zod";
+import {FormSchema} from "@/components/autobook-multi-form/schema";
+import CenterSelection from "@/components/autobook-multi-form/center-selection";
+import {getCountryFlag, getCountryFromISOCode} from "@/components/shared/utils";
+import emoji from "react-easy-emoji";
+import AppointmentSelection from "@/components/autobook-multi-form/appointment-selection";
+import ConfirmationView from "@/components/autobook-multi-form/confirmation-view";
+
+
+const AutobookApplicationForm = () => {
+    const [activeStep, setActiveStep] = useState(1);
+    const [erroredInputName, setErroredInputName] = useState("");
+
+    const methods = useForm<z.infer<typeof FormSchema>>({
+        resolver: zodResolver(FormSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+            preferredSlotRange: false,
+            primeTimeAppointment: false,
+            primeTimeWeekendAppointment: false,
+        },
+    })
+    const {trigger, formState: { isSubmitting } } = methods;
+
+    function getStepContent(step: number) {
+        switch (step) {
+            case 1:
+                return <CountrySelection form={methods} formStep={setActiveStep}/>;
+            case 2:
+                return <CenterSelection form={methods} formStep={setActiveStep}/>
+            case 3:
+                return <TLSInfoForm form={methods} />;
+            case 4:
+                return <AppointmentSelection form={methods} />
+            case 5:
+                return <ConfirmationView form={methods} />
+            default:
+                return "Unknown step";
+        }
+    }
+
+
+    // focus errored input on submit
+    useEffect(() => {
+        const erroredInputElement =
+            document.getElementsByName(erroredInputName)?.[0];
+        if (erroredInputElement instanceof HTMLInputElement) {
+            erroredInputElement.focus();
+            setErroredInputName("");
+        }
+    }, [erroredInputName]);
+
+    const onSubmit = async (data: z.infer<typeof FormSchema>) => {
+        toast({
+            title: "You submitted the following values:",
+            description: (
+                <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
+        </pre>
+            ),
+        })
+    };
+
+    const handleNext = async () => {
+        const isStepValid = await trigger(undefined, { shouldFocus: true });
+        if (isStepValid) setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    };
+
+    const handleBack = () => {
+        setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    };
+
+    return (
+        <div className="flex flex-row h-full">
+            <div className="self-center">
+                    <StepperIndicator activeStep={activeStep} />
+            </div>
+            <div className="self-center ml-10 flex-1 h-full">
+                <Card className="backdrop-blur-md bg-background/30 h-full">
+                    <div className="m-10 flex flex-col h-[97%]">
+                        <CardTitle className="text-3xl">
+                            <div className="flex flex-row items-center">
+                                {activeStep === 2 ? emoji(`${stepsData[activeStep-1].title} (${getCountryFlag(methods.getValues("issuer"))})`) : stepsData[activeStep-1].title}
+                            </div>
+                        </CardTitle>
+                        <div className="flex-1 h-full">
+                            <Form {...methods}>
+                                <form noValidate className="h-full">
+                                    <div className="h-full">
+                                        {getStepContent(activeStep)}
+                                    </div>
+                                </form>
+                            </Form>
+                        </div>
+                        <CardFooter className="mt-auto mb-5">
+                            <div className="flex justify-center space-x-[20px] ml-auto">
+                                <Button
+                                    type="button"
+                                    className={`${activeStep === 1 ? 'hidden': ''} w-[100px]`}
+                                    variant="secondary"
+                                    onClick={handleBack}
+                                    disabled={activeStep === 1}
+                                >
+                                    Back
+                                </Button>
+                                {activeStep === 5 ? (
+                                    <Button
+                                        className="w-[100px]"
+                                        type="button"
+                                        onClick={methods.handleSubmit(onSubmit)}
+                                        disabled={isSubmitting}
+                                    >
+                                        Submit
+                                    </Button>
+                                ) : (
+                                    <Button type="button" className={`${[1,2].includes(activeStep) ? 'invisible': ''} w-[100px]`} onClick={handleNext}>
+                                        Next
+                                    </Button>
+                                )}
+                            </div>
+                        </CardFooter>
+                    </div>
+                </Card>
+            </div>
+        </div>
+    );
+};
+
+export default AutobookApplicationForm;

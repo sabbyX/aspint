@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import React from "react";
-import {LogsIcon, LucideIcon, ServerIcon, Settings2Icon, UserPlus2} from 'lucide-react'
+import {LogsIcon, ChartNoAxesColumnIncreasingIcon, ServerIcon, Settings2Icon, UserPlus2} from 'lucide-react'
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
     setOpen?: (open: boolean) => void;
@@ -13,24 +13,29 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
 
 const items = [
     {
+        title: "Status",
+        icon: ChartNoAxesColumnIncreasingIcon,
+        href: ["/status", "/"]
+    },
+    {
         title: "New Application",
         icon: UserPlus2,
-        href: "/autobook",
+        href: ["/autobook"],
     },
     {
         title: "View Instances",
         icon: ServerIcon,
-        href: "/view-instances",
+        href: ["/view-instances"],
     },
     {
         title: "Logs",
         icon: LogsIcon,
-        href: "/internal-logs",
+        href: ["/internal-logs"],
     },
     {
         title: "Backend Control",
         icon: Settings2Icon,
-        href: "/backend-control",
+        href: ["/backend-control"],
     },
 ]
 
@@ -47,23 +52,24 @@ export function SidebarNav({ className, setOpen, ...props }: SidebarNavProps) {
         >
             {items.map((item) => (
                 <Link
-                    key={item.href}
-                    href={item.href}
+                    key={item.href[0]}
+                    href={item.href[0]}
                     onClick={() => {
                         if (setOpen) setOpen(false);
                     }}
                     className={cn(
                         buttonVariants({ variant: "ghost" }),
-                        pathname === item.href
+                        item.href.includes(pathname)
                             ? "bg-muted hover:bg-muted"
                             : "hover:bg-muted/40",
                         "justify-start",
-                        "font-semi-bold"
+                        "font-semi-bold",
+                        "w-[235px] pr-0"
                     )}
                 >
                     <item.icon className="mr-2 w-4 h-4" />
                     {item.title}
-
+                    <div className={`${item.href.includes(pathname) ? '' : 'hidden' } ml-auto w-[3px] h-[25px] rounded-t rounded-b bg-primary`} />
                 </Link>
             ))}
         </nav>
