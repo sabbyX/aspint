@@ -18,10 +18,16 @@ export default function AppointmentSelection({form}: IAppointmentSelection) {
         <div className="pt-10 h-full">
             <Tabs defaultValue="aao" className="w-full h-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="aao" defaultChecked>Auto Appointment Options</TabsTrigger>
-                    <TabsTrigger value="cfao">Choose from Available Slots</TabsTrigger>
+                    <TabsTrigger value="aao">
+                        <div className="hidden md:block">Auto Appointment Options</div>
+                        <div className="block md:hidden">Auto App. Options</div>
+                    </TabsTrigger>
+                    <TabsTrigger value="cfao">
+                        <div className="hidden md:block">Choose from Available Slots</div>
+                        <div className="block md:hidden">Available Slots</div>
+                    </TabsTrigger>
                     <TabsContent value="aao">
-                        <div className="flex flex-col justify-center pt-10 text-primary space-y-10">
+                        <div className="flex flex-col justify-center pt-10 text-primary space-y-10 min-w-[300px]">
                             <FormField
                                 control={form.control}
                                 name="preferredSlotRange"

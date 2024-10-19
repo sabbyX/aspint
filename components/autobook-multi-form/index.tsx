@@ -104,14 +104,14 @@ const AutobookApplicationForm = () => {
     };
 
     return (
-        <div className="flex flex-row h-full">
+        <div className="flex flex-col lg:flex-row h-full">
             <div className="self-center">
                     <StepperIndicator activeStep={activeStep} />
             </div>
-            <div className="self-center ml-10 flex-1 h-full">
+            <div className="self-center mt-5 md:mt-0 lg:ml-10 flex-1 h-full bg-gray">
                 <Card className="backdrop-blur-md bg-background/30 h-full">
                     <div className="m-10 flex flex-col h-[97%]">
-                        <CardTitle className="text-3xl">
+                        <CardTitle className="text-xl md:text-3xl">
                             <div className="flex flex-row items-center">
                                 {activeStep === 2 ? emoji(`${stepsData[activeStep-1].title} (${getCountryFlag(methods.getValues("issuer"))})`) : stepsData[activeStep-1].title}
                             </div>

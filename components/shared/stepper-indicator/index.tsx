@@ -42,11 +42,11 @@ interface StepperIndicatorProps {
 
 export const StepperIndicator = ({ activeStep }: StepperIndicatorProps) => {
     return (
-        <div className="flex flex-col justify-center items-center">
+        <div className="flex flex-row lg:flex-col justify-center items-center">
             {stepsData.map((step) => (
                 <Fragment key={step.idx}>
                     <div className="flex flex-row">
-                        <div className="flex flex-col justify-center items-center">
+                        <div className="flex flex-row lg:flex-col justify-center items-center">
                             <div
                                 className={clsx(
                                     "w-[40px] h-[40px] flex justify-center items-center m-[5px] rounded-full",
@@ -58,15 +58,14 @@ export const StepperIndicator = ({ activeStep }: StepperIndicatorProps) => {
                             </div>
                             {step.idx !== 5 && (
                                 <Separator
-                                    orientation="vertical"
                                     className={clsx(
-                                        "w-[2px] h-[50px]",
+                                        "w-[25px] h-[2px] md:w-[50px] lg:w-[2px] lg:h-[50px] ",
                                         step.idx <= activeStep - 1 && "bg-primary"
                                     )}
                                 />
                             )}
                         </div>
-                        <div className="flex flex-col ml-2 w-[200px]">
+                        <div className="hidden lg:flex flex-col ml-2 w-[200px]">
                             <text className="text-md font-semibold whitespace-nowrap">{step.title}</text>
                             <text className="text-xs text-muted-foreground">{step.description}</text>
                         </div>

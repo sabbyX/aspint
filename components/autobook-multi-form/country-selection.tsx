@@ -21,7 +21,7 @@ const CountrySelection = ({form, formStep}: ICountrySelection) => {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center h-full space-y-2">
+        <div className="flex flex-col items-center justify-center h-full space-y-5 md:space-y-2">
             {["be", "fr", "de", "ch"].map(
                 (country) => (
                     <Button type="button" key={country} className="group w-[300px] justify-start" variant="ghost" onClick={() => onSubmit(country)}>
