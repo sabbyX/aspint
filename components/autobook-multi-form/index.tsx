@@ -1,39 +1,20 @@
 "use client";
 
-import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import { useEffect, useState } from "react";
-import {FormProvider, useForm, UseFormReturn} from "react-hook-form";
+import {useForm} from "react-hook-form";
 
 import {StepperIndicator, stepsData} from "../shared/stepper-indicator";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Button } from "../ui/button";
 import { toast } from "../ui/use-toast";
 import TLSInfoForm from "./t-l-s-info-form";
 import CountrySelection from "./country-selection";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form"
-import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {Card, CardFooter, CardTitle} from "@/components/ui/card"
+import {Form} from "@/components/ui/form"
 import {z} from "zod";
-import {addDays} from "date-fns";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {FormSchema} from "@/components/autobook-multi-form/schema";
 import CenterSelection from "@/components/autobook-multi-form/center-selection";
-import {getCountryFlag, getCountryFromISOCode} from "@/components/shared/utils";
+import {getCountryFlag} from "@/components/shared/utils";
 import emoji from "react-easy-emoji";
 import AppointmentSelection from "@/components/autobook-multi-form/appointment-selection";
 import ConfirmationView from "@/components/autobook-multi-form/confirmation-view";

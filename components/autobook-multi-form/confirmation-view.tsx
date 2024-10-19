@@ -6,8 +6,6 @@ import {
     TableBody,
     TableCaption,
     TableCell,
-    TableHead,
-    TableHeader,
     TableRow,
 } from "@/components/ui/table"
 import {getCountryFromISOCode} from "@/components/shared/utils";
