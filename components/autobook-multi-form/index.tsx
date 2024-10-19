@@ -87,7 +87,7 @@ const AutobookApplicationForm = () => {
     return (
         <div className="flex flex-col lg:flex-row h-full">
             <div className="self-center">
-                    <StepperIndicator activeStep={activeStep} />
+                    <StepperIndicator activeStep={activeStep} setStep={setActiveStep}/>
             </div>
             <div className="self-center mt-5 md:mt-0 lg:ml-10 flex-1 h-full bg-gray">
                 <Card className="backdrop-blur-md bg-background/30 h-full">

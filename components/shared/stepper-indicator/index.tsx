@@ -1,7 +1,8 @@
 import { Separator } from "@/components/ui/separator";
 import clsx from "clsx";
 import {CheckIcon, EarthIcon, FormInputIcon, CalendarIcon, BuildingIcon, CheckCheckIcon} from "lucide-react";
-import React, { Fragment } from "react";
+import React, {Dispatch, Fragment, SetStateAction} from "react";
+import {cn} from "@/lib/utils";
 
 export const stepsData = [
     {
@@ -38,20 +39,26 @@ export const stepsData = [
 
 interface StepperIndicatorProps {
     activeStep: number;
+    setStep: Dispatch<SetStateAction<number>>
 }
 
-export const StepperIndicator = ({ activeStep }: StepperIndicatorProps) => {
+export const StepperIndicator = ({ activeStep, setStep }: StepperIndicatorProps) => {
+
+    function handleStepChange(toStep: number) {
+        if (toStep < activeStep) setStep(toStep)
+    }
+
     return (
         <div className="flex flex-row lg:flex-col justify-center items-center">
             {stepsData.map((step) => (
                 <Fragment key={step.idx}>
-                    <div className="flex flex-row">
+                    <div className={cn("flex flex-row", step.idx < activeStep && "hover:cursor-pointer", step.idx > activeStep && "hover:cursor-not-allowed")} onClick={() => handleStepChange(step.idx)}>
                         <div className="flex flex-row lg:flex-col justify-center items-center">
                             <div
                                 className={clsx(
                                     "w-[40px] h-[40px] flex justify-center items-center m-[5px] rounded-full",
                                     step.idx < activeStep && "bg-primary",
-                                    step.idx === activeStep && "ring-2 ring-offset-2 ring-offset-background ring-primary bg-primary text-primary"
+                                    step.idx === activeStep && "ring-2 ring-offset-2 ring-offset-background ring-primary bg-primary text-primary",
                                 )}
                             >
                                 {step.idx >= activeStep ? <step.icon className={`h-5 w-5 ${step.idx === activeStep ? 'text-white dark:text-black' : 'text-muted-foreground'}`} /> : <CheckIcon className="h-5 w-5 text-white dark:text-black"/>}
