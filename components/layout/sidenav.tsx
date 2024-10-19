@@ -68,7 +68,7 @@ export function SidebarNav({ className, setOpen, ...props }: SidebarNavProps) {
                     )}
                 >
                     <item.icon className="mr-2 w-4 h-4" />
-                    {item.title}
+                    <div className="mr-5">{item.title}</div>
                     <div className={`${item.href.includes(pathname) ? '' : 'hidden' } ml-auto w-[3px] h-[25px] rounded-t rounded-b bg-primary`} />
                 </Link>
             ))}
