@@ -78,6 +78,9 @@ const config = {
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-L2R": "pulse-L2R 1s ease-in-out",
       },
+      backgroundImage: {
+        'inactive-patten': 'repeating-linear-gradient(45deg, #fecaca, #fecaca 10px, #fafafa 10px, #fafafa 20px)'
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],

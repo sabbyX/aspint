@@ -25,7 +25,7 @@ const items = [
     {
         title: "View Instances",
         icon: ServerIcon,
-        href: ["/view-instances"],
+        href: ["/instances"],
     },
     {
         title: "Logs",
