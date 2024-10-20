@@ -5,7 +5,7 @@ import {LoaderCircleIcon, RefreshCwIcon, RotateCwIcon, TriangleAlertIcon,} from 
 import emoji from 'react-easy-emoji'
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
 import {Button} from "@/components/ui/button";
-import {Dispatch, SetStateAction, useState} from "react";
+import {Dispatch, SetStateAction, useEffect, useState} from "react";
 import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,} from "@/components/ui/dialog"
 
 import {Alert, AlertDescription, AlertTitle,} from "@/components/ui/alert"
@@ -98,6 +98,9 @@ const statusCardGen = (country: string, centers: Array<centerData>, left: boolea
         })
         setOpen(false);
     }
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => {if (!open) form.reset()}, [open]);
 
     return (
         <Tooltip>
