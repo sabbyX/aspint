@@ -79,7 +79,8 @@ const config = {
         "pulse-L2R": "pulse-L2R 1s ease-in-out",
       },
       backgroundImage: {
-        'inactive-patten': 'repeating-linear-gradient(45deg, #fecaca, #fecaca 10px, #fafafa 10px, #fafafa 20px)'
+        'inactive-patten': 'repeating-linear-gradient(45deg, #fecaca, #fecaca 10px, #fafafa 10px, #fafafa 20px)',
+        'inactive-dark-pattern': 'repeating-linear-gradient(45deg, #450a0a, #450a0a 10px, #3f3f46 10px, #3f3f46 20px)',
       }
     },
   },
