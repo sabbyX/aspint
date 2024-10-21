@@ -1,0 +1,3 @@
+[submodule "puppeteer-cluster"]
+	path = puppeteer-cluster
+	url = https://github.com/thomasdondorf/puppeteer-cluster.git
