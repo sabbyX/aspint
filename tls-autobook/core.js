@@ -1,54 +1,34 @@
 import {getHomePage, cfHopRq, cfHopRq2} from "./link.js";
-import { connect } from "puppeteer-real-browser";
+// import { PageWithCursor } from "puppeteer-real-browser";
 import { humanaizedCredentialEntry, humainzedCursorMovement } from "./humanize.js"
 import {getRndInteger, sleep} from "./utils.js";
 
 /**
+ * @param {PageWithCursor} page
  * @param {string} username
  * @param {string} password
- * @param {int} fg_id
+ * @param {int} formId
  * @param {string} country
  * @param {string} center
- * @param {string} selected_slot
- * @param {boolean} is_flexible
+ * @param {string} slot
+ * @param {string} slotType
+ * @param {boolean} isFlexible
  *
  */
-async function autobookCore(
+export async function autobookCore(
+    page,
     username,
     password,
-    fg_id,
+    formId,
     country,
     center,
-    selected_slot,
-    is_flexible,
+    slot,
+    slotType,
+    isFlexible,
 ) {
     const homeLink = getHomePage(country, center);
-
-    var {browser, page} = await connect({
-        headless: false,
-        args: [
-            "--start-maximized",
-            "--disable-backgrounding-occluded-windows",
-            "--disable-background-timer-throttling",
-            "--disable-renderer-backgrounding",
-        ],
-        customConfig: {
-            chromePath: "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
-        },
-        turnstile: true,
-        connectOption: {
-            defaultViewport: null,
-        },
-        disableXvfb: false,
-        ignoreAllFlags: false,
-        // @ts-ignore
-//        proxy: PROXY == null ? {} : {
-//            host: PROXY,
-//            port: 8888,
-//        },
-    });
     let session = await page.target().createCDPSession();
-    var {windowId} = await session.send('Browser.getWindowForTarget');
+    const {windowId} = await session.send('Browser.getWindowForTarget');
     await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
 
     page.setDefaultTimeout(120000)
@@ -70,6 +50,8 @@ async function autobookCore(
             }
         })
     ]);
+
+    await sleep(999999);
 
     await humainzedCursorMovement(page, country, 2, 3);
     console.log(center, username, "home page loaded")
@@ -112,38 +94,15 @@ async function autobookCore(
     await sleep(getRndInteger(1500, 2000));
     console.log(country, username, "Login procedure finished");
 
-    const cookies = await page.cookies();
-    let essentialCookies = []
-    for (let i = 0; i < cookies.length; i++) {
-        const currCookie = cookies[i];
-        if (!currCookie.name.includes("cf") && !currCookie.name.includes("datadome") && !currCookie.name.includes("pk_ses") && !currCookie.name.includes("stg"))  {
-            console.log(currCookie.name);
-            essentialCookies.push(currCookie);
-        } else console.log("avoiding ", currCookie.name)
-    }
-    console.log(essentialCookies.toString());
-    await browser.close()
-    await sleep(10000);
-    var {browser, page} = await connect({
-        headless: false,
-        args: [
-            "--start-maximized",
-            "--disable-backgrounding-occluded-windows",
-            "--disable-background-timer-throttling",
-            "--disable-renderer-backgrounding",
-        ],
-        customConfig: {},
-        turnstile: true,
-        connectOption: {
-            defaultViewport: null,
-        },
-        disableXvfb: false,
-        ignoreAllFlags: false,
-    });
-    session = await page.target().createCDPSession();
-    var {windowId} = await session.send('Browser.getWindowForTarget');
-    await session.send('Browser.setWindowBounds', {windowId, bounds: {windowState: 'normal'}});
-
+    // const cookies = await page.cookies();
+    // let essentialCookies = []
+    // for (let i = 0; i < cookies.length; i++) {
+    //     const currCookie = cookies[i];
+    //     if (!currCookie.name.includes("cf") && !currCookie.name.includes("datadome") && !currCookie.name.includes("pk_ses") && !currCookie.name.includes("stg"))  {
+    //         console.log(currCookie.name);
+    //         essentialCookies.push(currCookie);
+    //     } else console.log("avoiding ", currCookie.name)
+    // }
 
     page.setDefaultTimeout(120000)
     await page.setCookie(...essentialCookies);
@@ -152,13 +111,3 @@ async function autobookCore(
 
     // document.getElementsByClassName("tls-appointment-time-picker")[0].__vue__.selectSlot(data, {hour, type})
 }
-
-autobookCore(
-    "aspint.ch",
-    "Test@123",
-    0,
-    "ch",
-    "gbLON2ch",
-    "",
-    false,
-);
