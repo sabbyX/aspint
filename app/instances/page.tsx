@@ -5,11 +5,24 @@ import {QueueTable} from "@/components/ab-instance-status/queue-table";
 import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
 import {useMediaQuery} from "usehooks-ts";
 import {ReactNode, useEffect, useState} from "react";
+import QueueTableSkeleton from "@/components/ab-instance-status/queue-table-skeleton";
 
 
 export default function InstancePage() {
     const isDesktop = useMediaQuery("(min-width: 1600px)");
     const [isClient, setIsClient] = useState(false)
+
+    const [isLoaded, setLoadState] = useState(false);
+
+    useEffect(() => {
+        (async () => {
+            function sleep(ms: number) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+            await sleep(10000)
+            setLoadState(true)
+        })()
+    }, [isLoaded]);
 
     useEffect(() => {
         setIsClient(true)
@@ -33,7 +46,7 @@ export default function InstancePage() {
                 </WrapWithScroll>
             </div>
             <div>
-                <QueueTable />
+                {isLoaded ? <QueueTable /> : <QueueTableSkeleton />}
             </div>
         </div>
     )
