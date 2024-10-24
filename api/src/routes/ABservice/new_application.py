@@ -51,7 +51,7 @@ async def new_application(_: Annotated[User, Depends(get_current_user)], payload
     try:
         await db_entry.insert()
     except DuplicateKeyError:
-        return JSONResponse({"error": "duplicate application"}, status_code=400)
+        return JSONResponse({"error": "duplicate application"}, status_code=409)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
     return JSONResponse({"status": "ok"})

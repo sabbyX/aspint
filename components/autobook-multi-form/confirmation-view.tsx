@@ -15,7 +15,7 @@ export default function ConfirmationView({form}: IConfirmationView) {
     return (
         <div className="pt-10">
             <Table>
-                <TableCaption>Please confirm, editing after submitting later may NOT work.</TableCaption>
+                <TableCaption>Please confirm, editing after submission later may NOT work.</TableCaption>
                 <TableBody>
                     <TableRow>
                         <TableCell className="font-medium text-base">Issuer</TableCell>

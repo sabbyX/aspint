@@ -5,8 +5,6 @@ import {Separator} from "@/components/ui/separator";
 import {cn} from "@/lib/utils";
 import {MobileSidebar} from "@/components/layout/mobilenav.";
 import {SidebarNav} from "@/components/layout/sidenav";
-import {ThemeProvider} from "@/components/theme-provider";
-import {Toaster} from "@/components/ui/toaster";
 import {ReactNode} from "react";
 import {usePathname} from "next/navigation";
 
@@ -41,7 +39,6 @@ export function Layout({children}: Readonly<{
                 <Separator className="hidden lg:block lg:h-[calc(100vh-55px)]" orientation="vertical"/>
                 <div className="flex-1 p-5 overflow-auto shadow-md">
                     {children}
-                    <Toaster/>
                 </div>
             </div>
         </div>

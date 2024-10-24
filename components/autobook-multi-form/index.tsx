@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import {useForm} from "react-hook-form";
+import {toast} from "sonner";
 
 import {StepperIndicator, stepsData} from "../shared/stepper-indicator";
 import { Button } from "../ui/button";
-import { toast } from "../ui/use-toast";
 import TLSInfoForm from "./t-l-s-info-form";
 import CountrySelection from "./country-selection";
 import {Card, CardFooter, CardTitle} from "@/components/ui/card"
@@ -18,6 +18,9 @@ import {getCountryFlag} from "@/components/shared/utils";
 import emoji from "react-easy-emoji";
 import AppointmentSelection from "@/components/autobook-multi-form/appointment-selection";
 import ConfirmationView from "@/components/autobook-multi-form/confirmation-view";
+import {LoaderCircleIcon} from "lucide-react";
+import * as React from "react";
+import submitNewApplication from "@/app/actions/newApplicationAction";
 
 
 const AutobookApplicationForm = () => {
@@ -65,14 +68,14 @@ const AutobookApplicationForm = () => {
     }, [erroredInputName]);
 
     const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-        toast({
-            title: "You submitted the following values:",
-            description: (
-                <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-            ),
-        })
+        const {status, message} = await submitNewApplication(data)
+        if (status == 200) {
+            methods.reset();
+            setActiveStep(1);
+            toast.success("Application has been submitted successfully!");
+        }
+        else if ([409].includes(status)) toast.error("Submission Failed", {description: "Duplicate application!"})
+        else toast.error("Submission Failed", {description: `Unexpected error encountered while submitting: ${message}`})
     };
 
     const handleNext = async () => {
@@ -124,6 +127,9 @@ const AutobookApplicationForm = () => {
                                         onClick={methods.handleSubmit(onSubmit)}
                                         disabled={isSubmitting}
                                     >
+                                        {isSubmitting && (
+                                            <LoaderCircleIcon className="mr-2 h-4 w-4 animate-spin" />
+                                        )}
                                         Submit
                                     </Button>
                                 ) : (
