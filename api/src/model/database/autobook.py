@@ -38,3 +38,11 @@ class ABHealth(Document):
 
     class Settings:
         name = "autobook_logs"
+
+
+class ABServerData(Document):
+    server_name: str
+    current_queue: list[int] = Field(default_factory=list)
+
+    class Settings:
+        name = "autobook_servers"

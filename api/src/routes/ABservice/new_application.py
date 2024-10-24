@@ -1,4 +1,3 @@
-import datetime
 from typing import Annotated, Literal, Optional
 
 import structlog.stdlib
