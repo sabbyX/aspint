@@ -1,2 +1,2 @@
 pub mod health;
-mod slot_update;
+pub mod slot_update;

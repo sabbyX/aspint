@@ -1,7 +1,6 @@
-use mongodb::Collection;
-use crate::model::appointment_table::AppointmentTable;
+use mongodb::Client;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub(crate) appointment_table_db: Collection<AppointmentTable>
+    pub(crate) db_client: Client
 }
