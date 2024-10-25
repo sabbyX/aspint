@@ -28,13 +28,13 @@ pub async fn slot_update(Path(center): Path<String>, State(state): State<Arc<App
             }
             if available_slots.is_empty() { continue }
             let typed_date = NaiveDate::parse_from_str(&date, "%Y-%m-%d")?;
-            
+
             if slot_table.contains_key(&typed_date) {
                 slot_table[&typed_date].extend(available_slots);
-            } else { 
+            } else {
                 slot_table.insert(typed_date, available_slots);
             }
-            
+
             // sort
             if let Some(slots) = slot_table.get_mut(&typed_date) {
                 slots.sort_by(|a, b| a.td.cmp(&b.td));
@@ -49,7 +49,7 @@ pub async fn slot_update(Path(center): Path<String>, State(state): State<Arc<App
         issuer: extract_issuer_from_center(center.clone())?,
         slots_available: slot_table,
     };
-    
+
     // ACID-compliant commit, todo: improv database-design/logic to avoid this
     async fn transact(session: &ClientSession, center: String, table: AppointmentTable) -> Result<(), mongodb::error::Error> {
         tracing::debug!("storing slot to database (center: {center})");
@@ -63,7 +63,7 @@ pub async fn slot_update(Path(center): Path<String>, State(state): State<Arc<App
             .build();
 
         let docs: Vec<AppointmentTable> = col
-            .find(doc! { "issuer": center })
+            .find(doc! { "center": center })
             .with_options(find_opt)
             .await?
             .try_collect()
