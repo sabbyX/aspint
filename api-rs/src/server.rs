@@ -25,6 +25,8 @@ pub async fn server() -> anyhow::Result<()> {
         .route("/allowAssistiveWorkers/:ty", get(routes::assistive_load::allow_assistive_worker))
         .route("/checkAssistLoad", get(routes::assistive_load::check_assist_load))
         .route("/rotateListener/:center", get(routes::rotate_listener::rotate_listener))
+        .route("/setForceReload/:wid/:center", get(routes::freload::set_force_reload))
+        .route("/checkFreload/:wid/:center", get(routes::freload::check_freload))
         .layer(TraceLayer::new_for_http())
         .with_state(Arc::new(app_state));
     
