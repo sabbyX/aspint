@@ -12,7 +12,7 @@ use crate::server_err::ServerError;
 type ResponsePayload = IndexMap<String, ListenerCredentialData>;
 pub async fn get_slot_listener(State(state): State<Arc<AppState>>, Json(payload): Json<ListenerPayload>) -> Result<Json<ResponsePayload>, ServerError> {
     tracing::debug!("Retrieving slot listener data");
-    let opt_listeners: Option<ListenerDBCol> = state.db_client
+    let opt_listeners: Option<ListenerDBCol> = state.db
         .database("aspint")
         .collection::<ListenerDBCol>("slot_listeners")
         .find_one(doc! { "rotate_id": 0 })

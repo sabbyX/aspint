@@ -19,4 +19,6 @@ serde_nested_with = "0.2.5"
 futures = "0.3.31"
 circular-buffer = "0.1.9"
 tower-layer = "0.3.3"
-redis = { version = "0.27.5", features = ["aio", "connection-manager", "tokio-comp", "async-std-comp"] }
+redis = { version = "0.27.5", features = ["aio"] }
+bb8 = "0.8.5"
+bb8-redis = "0.17.0"

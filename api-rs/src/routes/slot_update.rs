@@ -75,7 +75,7 @@ pub async fn slot_update(Path(center): Path<String>, State(state): State<Arc<App
         Ok(())
     }
 
-    let mut session = state.db_client.start_session().await?;
+    let mut session = state.db.start_session().await?;
     session.start_transaction()
         .and_run((), |session, _| transact(session, center.clone(), table.clone()).boxed())
         .await?;
