@@ -152,6 +152,7 @@ rotate1 = {
         'username': 'xobov27499@aiworldx.com',
         'password': 'Test@123',
         'fg_id': 2709975,
+        'country': 'de',
     }
 }
 
@@ -191,9 +192,9 @@ for idx, ad in enumerate([auth_data, rotate1, rotate2]):
             return _c
 
         if clean(center) in entries[idx]['cdata']:
-            entries[idx]['cdata'][clean(center)].append(auth_data[center])
+            entries[idx]['cdata'][clean(center)].append(ad[center])
         else:
-            entries[idx]['cdata'][clean(center)] = [auth_data[center]]
+            entries[idx]['cdata'][clean(center)] = [ad[center]]
 
 col.insert_many(entries)
 print("Migration Finished")

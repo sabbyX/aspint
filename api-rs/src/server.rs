@@ -24,6 +24,7 @@ pub async fn server() -> anyhow::Result<()> {
         .route("/getListenerData", post(routes::slot_listener::get_slot_listener))
         .route("/allowAssistiveWorkers/:ty", get(routes::assistive_load::allow_assistive_worker))
         .route("/checkAssistLoad", get(routes::assistive_load::check_assist_load))
+        .route("/rotateListener/:center", get(routes::rotate_listener::rotate_listener))
         .layer(TraceLayer::new_for_http())
         .with_state(Arc::new(app_state));
     
