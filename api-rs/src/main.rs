@@ -1,9 +1,13 @@
+use muddy::muddy_init;
+
 mod server;
 mod model;
 mod state;
 mod server_err;
-mod routes;
 mod utils;
+mod routes;
+
+muddy_init!();
 
 #[tokio::main]
 async fn main() {

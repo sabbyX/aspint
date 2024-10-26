@@ -6,7 +6,7 @@ use tower_http::{trace::TraceLayer, normalize_path::NormalizePathLayer};
 use bb8::Pool;
 use bb8_redis::RedisConnectionManager;
 
-use crate::routes;
+use crate::routes::internal;
 use crate::state::AppState;
 
 pub async fn server() -> anyhow::Result<()> {
@@ -19,14 +19,7 @@ pub async fn server() -> anyhow::Result<()> {
         redis: re_pool,
     };
     let app = Router::new()
-        .route("/health", get(routes::health::healthcheck))
-        .route("/slotUpdateV2/:center", post(routes::slot_update::slot_update))
-        .route("/getListenerData", post(routes::slot_listener::get_slot_listener))
-        .route("/allowAssistiveWorkers/:ty", get(routes::assistive_load::allow_assistive_worker))
-        .route("/checkAssistLoad", get(routes::assistive_load::check_assist_load))
-        .route("/rotateListener/:center", get(routes::rotate_listener::rotate_listener))
-        .route("/setForceReload/:wid/:center", get(routes::freload::set_force_reload))
-        .route("/checkFreload/:wid/:center", get(routes::freload::check_freload))
+        .nest("/internalService", internal::internal_routes())
         .layer(TraceLayer::new_for_http())
         .with_state(Arc::new(app_state));
     
@@ -34,6 +27,5 @@ pub async fn server() -> anyhow::Result<()> {
     let app = ServiceExt::<Request>::into_make_service(app);
     let listener = tokio::net::TcpListener::bind("localhost:7777").await?;
     axum::serve(listener, app).await?;
-
     Ok(())
 }
