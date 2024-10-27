@@ -14,6 +14,7 @@ logger = structlog.stdlib.get_logger()
 router = APIRouter(prefix="/newApplication")
 
 class NewApplicationPayload(BaseModel):
+    name: str
     issuer: Literal["be", "fr", "de", "ch"]
     center: Literal["London", "Manchester", "Edinburgh"]
     email: EmailStr
@@ -39,6 +40,7 @@ def gen_center_code(issuer: str, center: str):
 @router.post("/")
 async def new_application(_: Annotated[User, Depends(get_current_user)], payload: NewApplicationPayload) -> responses.JSONResponse:
     db_entry = ABApplication(
+        name=payload.name,
         email=payload.email,
         password=payload.password,
         formid=payload.formid,

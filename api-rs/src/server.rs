@@ -1,12 +1,12 @@
 use tower_layer::Layer;
 use std::sync::Arc;
-use axum::{routing::{get, post}, Router, ServiceExt, extract::Request};
+use axum::{Router, ServiceExt, extract::Request};
 use mongodb::Client;
 use tower_http::{trace::TraceLayer, normalize_path::NormalizePathLayer};
 use bb8::Pool;
 use bb8_redis::RedisConnectionManager;
 
-use crate::routes::internal;
+use crate::routes::{internal, service};
 use crate::state::AppState;
 
 pub async fn server() -> anyhow::Result<()> {
@@ -20,6 +20,7 @@ pub async fn server() -> anyhow::Result<()> {
     };
     let app = Router::new()
         .nest("/internalService", internal::internal_routes())
+        .nest("/serviceAPI", service::service_routes())
         .layer(TraceLayer::new_for_http())
         .with_state(Arc::new(app_state));
     

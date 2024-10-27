@@ -11,6 +11,7 @@ class IntABApplicationDateRange(BaseModel):
 
 
 class ABApplication(Document):
+    name: str
     email: EmailStr
     password: str
     center: str
