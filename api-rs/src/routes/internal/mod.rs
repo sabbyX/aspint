@@ -14,6 +14,7 @@ pub mod slot_listener;
 pub mod assistive_load;
 pub mod rotate_listener;
 pub mod freload;
+pub mod ab_server;
 
 #[muddy]
 static AUTH_TOKEN: &str = "Basic df80d0534b4c7631f3e002cfab0939a60e11ef209cc9d8ecdd2387684e5803ef";
@@ -45,5 +46,7 @@ pub fn internal_routes() -> Router<Arc<AppState>> {
         .route("/rotateListener/:center", get(rotate_listener::rotate_listener))
         .route("/setForceReload/:wid/:center", get(freload::set_force_reload))
         .route("/checkFreload/:wid/:center", get(freload::check_freload))
+        .route("/addABTask", get(ab_server::add_ab_server_task))
+        .route("/removeABTask", get(ab_server::remove_ab_server_task))
         .route_layer(middleware::from_fn(internal_auth))
 }

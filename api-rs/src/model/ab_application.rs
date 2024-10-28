@@ -14,3 +14,14 @@ pub struct ABApplication {
     #[serde(rename="allowPremium")]
     pub allow_premium: bool,
 }
+
+
+// #[derive(Serialize, Deserialize, Debug)]
+// pub struct ABApplicationView {
+//     pub formid: i64,
+//     pub name: String,
+//     pub email: String,
+//     pub issuer: String,
+//     pub country: String,
+//     pub status: ABHealthQData
+// }

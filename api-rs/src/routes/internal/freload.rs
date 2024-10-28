@@ -2,7 +2,7 @@ use std::sync::Arc;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
-use redis::{AsyncCommands, Commands};
+use redis::AsyncCommands;
 use serde_json::{json, Value};
 use crate::server_err::ServerError;
 use crate::state::AppState;

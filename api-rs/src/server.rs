@@ -19,8 +19,8 @@ pub async fn server() -> anyhow::Result<()> {
         redis: re_pool,
     };
     let app = Router::new()
-        .nest("/internalService", internal::internal_routes())
-        .nest("/serviceAPI", service::service_routes())
+        .nest("/internal", internal::internal_routes())
+        .nest("/service", service::service_routes())
         .layer(TraceLayer::new_for_http())
         .with_state(Arc::new(app_state));
     
