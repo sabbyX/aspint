@@ -20,7 +20,7 @@ pub async fn server() -> anyhow::Result<()> {
     };
     let app = Router::new()
         .nest("/internal", internal::internal_routes())
-        .nest("/service", service::service_routes())
+        .nest("/service", service::service_routes(&app_state))
         .layer(TraceLayer::new_for_http())
         .with_state(Arc::new(app_state));
     

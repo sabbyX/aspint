@@ -19,7 +19,6 @@ use crate::server_err::ServerError;
 use crate::state::AppState;
 
 fn internal_stream(db: Database) -> impl Stream<Item = Result<Event, anyhow::Error>> {
-
     stream! {
         let init_applications: Vec<Document> = db.collection::<ABApplication>("autobook_applications")
             .aggregate(vec![
@@ -148,6 +147,7 @@ pub async fn view_instances_sse(
     for i in ["autobook_applications", "autobook_logs", "autobook_servers"] {
         let _ = state.db.database("aspint").run_command(doc! {"collMod": i,"changeStreamPreAndPostImages": {"enabled": true,}}).await;
     }
+    
     Ok(Sse::new(internal_stream(state.db.database("aspint")))
         .keep_alive(
             axum::response::sse::KeepAlive::new()

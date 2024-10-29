@@ -25,3 +25,5 @@ muddy = "0.2.2"
 tokio-stream = "0.1.16"
 async-stream = "0.3.6"
 bson = { version =  "2.13.0", features = ["chrono-0_4"] }
+jsonwebtoken = "9.3.0"
+password-auth = "1.0.0"
