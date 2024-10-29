@@ -4,6 +4,8 @@ import {addDays} from "date-fns";
 export const FormSchema = z.object({
     issuer: z.string(),
     center: z.string(),
+    name: z.string()
+        .min(1, {message: "Name is required"}),
     email: z.string()
         .min(1, {message: "Email is required"})
         .email("Not a valid email"),
@@ -23,7 +25,7 @@ export const FormSchema = z.object({
         )
     ),
     preferredSlotRange: z.boolean().default(true),
-    primeTimeAppointment: z.boolean().default(false),
+    primeTimeAppointment: z.boolean().default(true),
     primeTimeWeekendAppointment: z.boolean().default(false),
 }).superRefine(({preferredSlotRange, dateRange}, refinementCtx) => {
     if (preferredSlotRange && dateRange == undefined) {

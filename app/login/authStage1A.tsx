@@ -71,7 +71,7 @@ export function AuthStage1A({ className, ...props }: UserAuthFormProps) {
                                     </FormItem>
                                 )} />
                         </div>
-                        <Button type="submit" disabled={isLoading}>
+                        <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
                             {isLoading && (
                                 <LoaderCircleIcon className="mr-2 h-4 w-4 animate-spin" />
                             )}

@@ -12,6 +12,23 @@ const TLSInfoForm = ({form}: ITLSInfoForm) => {
             <div className="max-w-[500px] space-y-5">
                 <FormField
                     control={form.control}
+                    name="name"
+                    render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Name of applicant</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Name" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                                Name of applicant, for identification use within the website.
+                            </FormDescription>
+                            <FormMessage/>
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
                     name="email"
                     render={({field}) => (
                         <FormItem>

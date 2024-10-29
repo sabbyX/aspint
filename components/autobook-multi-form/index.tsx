@@ -33,7 +33,7 @@ const AutobookApplicationForm = () => {
             email: "",
             password: "",
             preferredSlotRange: false,
-            primeTimeAppointment: false,
+            primeTimeAppointment: true,
             primeTimeWeekendAppointment: false,
         },
     })
