@@ -5,22 +5,26 @@ import {redirect} from "next/navigation";
 
 export async function authenticateType1(username: string, password: string): Promise<boolean> {
     try {
-        let payload = new FormData();
-        payload.append('username', username);
-        payload.append('password', password);
+        let payload = {
+            username: username,
+            password: password
+        }
 
-        const resp = await fetch("http://localhost:8000/service/authenticate/",
+        const resp = await fetch("http://localhost:7777/service/authenticateUser/",
             {
                 method: "POST",
-                body: payload
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
             }
         )
         console.log("Authentication Request status:", resp.status);
         if (!resp.ok) return false;
         else {
             const data = await resp.json();
-            if (data?.access_token) {
-                cookies().set("JSESSIONID", data?.access_token, {secure: true, path: "/"});
+            if (data?.token) {
+                cookies().set("JSESSIONID", data?.token, {secure: true, path: "/"});
                 return true;
             }
         }
@@ -35,26 +39,31 @@ export type UserResp = {
     name: string
 }
 
-export async function getMe(token: string | undefined | null) : Promise<UserResp | null> {
-    if (typeof token !== 'string') return null;
+export async function authVerify(token: string | undefined | null) : Promise<boolean> {
+    if (typeof token !== 'string') return false;
     const headers = new Headers({
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
     })
 
     try {
-        const resp = await fetch("http://localhost:8000/service/accounts/me",
+        const resp = await fetch("http://localhost:7777/service/verifyAuth",
             {
                 method: "GET",
                 headers: headers,
             }
         )
-        if (!resp.ok) return null
-        else return await resp.json()
+        if (!resp.ok) return false
+        else return true
     } catch (e: any) {
       console.log("Encountered Error While fetching authenticated user:", e.toString())
     }
-    return null
+    return false
+}
+
+export async function logOut() {
+    cookies().delete("JSESSIONID")
+    return redirect("/login")
 }
 
 export async function redirectToHome() {

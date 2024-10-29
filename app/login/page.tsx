@@ -3,7 +3,6 @@
 import { UserAuthForm } from "@/app/login/user-auth-form"
 import {Provider} from "react-redux";
 import {store} from "@/components/store";
-import {useSelector} from "react-redux";
 
 export default function AuthenticationPage() {
     return (

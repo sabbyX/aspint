@@ -8,6 +8,7 @@ import {IRootState} from "@/components/store";
 import {AuthStage1A} from "@/app/login/authStage1A";
 import {AuthStage1B} from "@/app/login/authStage1B";
 import {AuthCodeStage} from '@/app/login/authStage.alt';
+import AuthStageRegister from "@/app/login/authStageRegister";
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
@@ -20,6 +21,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         </>
     );
     let context_text = "{context}";
+    let context_head = null;
     switch (authStage) {
         case 1:
             children = <AuthStage1A />;
@@ -33,6 +35,10 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             context_text = "Enter auth code you've received below to login";
             children = <AuthCodeStage />;
             break;
+        case 4:
+            context_head = "Create an account"
+            context_text = "Enter the following to create your account";
+            children = <AuthStageRegister />;
     }
 
     return (
@@ -40,7 +46,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
                 <div className="flex flex-col space-y-2 text-center">
                     <h1 className="text-2xl font-semibold tracking-tight">
-                        Login
+                        {context_head ? context_head : "Login"}
                     </h1>
                     <p className="text-sm text-muted-foreground">
                         {context_text}

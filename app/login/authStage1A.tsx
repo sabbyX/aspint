@@ -5,7 +5,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { z } from 'zod';
 import {RectangleEllipsis, LoaderCircleIcon, TriangleAlertIcon} from 'lucide-react'
-import { Button } from "@/components/ui/button"
+import {Button, buttonVariants} from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {ChangeEvent, useEffect, useState} from "react";
@@ -15,6 +15,7 @@ import {authStage, authUsername, invalidCredentialAlert} from "@/components/stor
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+import Link from "next/link";
 
 const FormSchema = z.object({
     username: z.string()
@@ -48,6 +49,13 @@ export function AuthStage1A({ className, ...props }: UserAuthFormProps) {
 
     return (
         <div className={cn("grid gap-6", className)} {...props}>
+            <Button
+                variant="ghost"
+                className="absolute right-4 top-4 md:right-8 md:top-8"
+                onClick={() => dispatch(authStage(4))}
+            >
+                Register
+            </Button>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <div className="grid gap-2">

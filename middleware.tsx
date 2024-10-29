@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getMe } from '@/app/actions/authActions';
+import { authVerify } from '@/app/actions/authActions';
 
 // const protectedRoutes = ['/autobook', '/']
 const publicRoutes = ['/login']
@@ -11,14 +11,14 @@ export default async function middleware(req: NextRequest) {
     const isPublicRoute = publicRoutes.includes(path)
 
     const token = cookies().get('JSESSIONID')?.value
-    const user = await getMe(token);
-    if (!isPublicRoute && !user?.username) {
+    const verified = await authVerify(token);
+    if (!isPublicRoute && !verified) {
         return NextResponse.redirect(new URL('/login', req.nextUrl))
     }
 
     if (
         isPublicRoute &&
-        user?.username &&
+        verified &&
         !req.nextUrl.pathname.startsWith('/')
     ) {
         return NextResponse.redirect(new URL('/', req.nextUrl))
