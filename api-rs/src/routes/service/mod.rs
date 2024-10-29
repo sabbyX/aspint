@@ -5,7 +5,6 @@ use axum::{http, middleware, Router};
 use axum::http::StatusCode;
 use axum::response::Response;
 use axum::routing::{get, post};
-use crate::server_err::ServerError;
 use crate::state::AppState;
 use crate::utils::authentication::{decode_jwt, verify_jwt};
 

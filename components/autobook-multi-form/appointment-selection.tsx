@@ -141,7 +141,7 @@ export default function AppointmentSelection({form}: IAppointmentSelection) {
                                 <FormField
                                     control={form.control}
                                     name="primeTimeWeekendAppointment"
-                                    render={({field}) => (
+                                    render={({_}) => (
                                         <FormItem
                                             className="flex flex-row items-center space-x-3 space-y-0 justify-between rounded-lg border p-3 shadow-sm">
                                             <div className="space-y-3 leading-none">
@@ -169,7 +169,7 @@ export default function AppointmentSelection({form}: IAppointmentSelection) {
                                 <FormField
                                     control={form.control}
                                     name="primeTimeWeekendAppointment"
-                                    render={({field}) => (
+                                    render={({_}) => (
                                         <FormItem
                                             className="flex flex-row items-center space-x-3 space-y-0 justify-between rounded-lg border p-3 shadow-sm">
                                             <div className="space-y-3 leading-none">

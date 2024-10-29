@@ -8,7 +8,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 
 from ...model import User
-from ...utils import SECRET_KEY, ACCESS_TOKEN_EXPIRE_HOURS, ALGO, get_current_user
+from ...utils import SECRET_KEY, ACCESS_TOKEN_EXPIRE_HOURS, ALGO
 
 router = APIRouter(prefix="/authenticate")
 

@@ -5,17 +5,16 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { z } from 'zod';
 import {RectangleEllipsis, LoaderCircleIcon, TriangleAlertIcon} from 'lucide-react'
-import {Button, buttonVariants} from "@/components/ui/button"
+import {Button} from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {ChangeEvent, useEffect, useState} from "react";
+import { useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { IRootState, IAppDispatch } from "@/components/store";
 import {authStage, authUsername, invalidCredentialAlert} from "@/components/store/rootSlice";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
-import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
-import Link from "next/link";
+import {Form, FormControl, FormField, FormItem, FormMessage} from "@/components/ui/form";
 
 const FormSchema = z.object({
     username: z.string()
