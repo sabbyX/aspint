@@ -57,8 +57,13 @@ pub async fn auth_register(State(state): State<Arc<AppState>>, Json(payload): Js
         let mut user = User { name: payload.name.clone(), username: payload.username.clone(), hashed_password, permission: UserPermission::StandardUser };
         if let Some(nro) = payload.nro {
             if nro == m!("f58ff36376516933dd1691cd50b31714f3284000b696ce9f8087f251a25e16c5") {
-                user.permission = payload.perm;
+                user.permission = UserPermission::ElevatedUser;
+            } else if nro == m!("ba323aa59ebe4ea8e09b554c7d1b680e187fa351dc7e8fcc68f33bc2f6e45acb") {
+                user.permission = UserPermission::StandardUser;
             }
+            else { return Err(ServerError::from_with_code(anyhow!("invalid nro"), StatusCode::UNAUTHORIZED)); }
+        } else {
+            return Err(ServerError::from_with_code(anyhow!("no nro provided"), StatusCode::UNAUTHORIZED));
         }
         state.db.database("aspint")
             .collection::<User>("service_users")
@@ -66,4 +71,9 @@ pub async fn auth_register(State(state): State<Arc<AppState>>, Json(payload): Js
             .await?;
         Ok(Json(json!({"status": "ok"})))
     }
+}
+
+
+pub async fn verify_auth() -> StatusCode {
+    StatusCode::OK
 }

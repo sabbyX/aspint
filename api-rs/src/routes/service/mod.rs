@@ -20,7 +20,6 @@ async fn service_auth_middleware(State(state): State<AppState>, req: Request, ne
         if auth_header.starts_with(jwt_pad) {
             let owned_auth = String::from(auth_header.trim_start_matches(jwt_pad));
             let claims = decode_jwt(owned_auth);
-            tracing::debug!("claims: {:?}", claims);
             if claims.is_err() {
                 Err(StatusCode::UNAUTHORIZED)
             } else if verify_jwt(&state.db, &claims.unwrap()).await.map_err(|_| StatusCode::UNAUTHORIZED)? {
@@ -33,6 +32,7 @@ async fn service_auth_middleware(State(state): State<AppState>, req: Request, ne
 pub fn service_routes(state: &AppState) -> Router<Arc<AppState>> {
     let authenticated_routes = Router::new()
         .route("/viewInstanceSse", get(view_instance_sse::view_instances_sse))
+        .route("/verifyAuth", get(auth::verify_auth))
         .route_layer(middleware::from_fn_with_state(state.clone(), service_auth_middleware));
     
     let unauthenticated_routes = Router::new()
