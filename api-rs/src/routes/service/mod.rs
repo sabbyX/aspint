@@ -21,7 +21,7 @@ async fn service_auth_middleware(State(state): State<AppState>, req: Request, ne
             let claims = decode_jwt(owned_auth);
             if claims.is_err() {
                 Err(StatusCode::UNAUTHORIZED)
-            } else if verify_jwt(&state.db, &claims.unwrap()).await.map_err(|_| StatusCode::UNAUTHORIZED)? {
+            } else if verify_jwt(&state, &claims.unwrap()).await.map_err(|_| StatusCode::UNAUTHORIZED)? {
                 Ok(next.run(req).await)
             } else { Err(StatusCode::UNAUTHORIZED) }
         } else { Err(StatusCode::UNAUTHORIZED) }

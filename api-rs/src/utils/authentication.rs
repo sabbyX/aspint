@@ -5,7 +5,9 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use mongodb::bson::doc;
 use mongodb::Client;
 use muddy::muddy;
+use redis::AsyncCommands;
 use crate::model::user::User;
+use crate::state::AppState;
 
 #[muddy]
 static SECRET_KEY: &str = "56b0d4468a687801564a4541df91467cc869e78283cf15f552c6a48fb01a094f";
@@ -21,13 +23,22 @@ pub fn decode_jwt(token: String) -> Result<Claims, anyhow::Error> {
     Ok(token.claims)
 }
 
-pub async fn verify_jwt(db: &Client, claims: &Claims) -> Result<bool, anyhow::Error> {
-    // todo: caching
-    let res: Option<User> = db.database("aspint")
-        .collection::<User>("service_users")
-        .find_one(doc! {"username": &claims.sub})
-        .await?;
-    Ok(res.is_some())
+pub async fn verify_jwt(state: &AppState, claims: &Claims) -> Result<bool, anyhow::Error> {
+    let cache_key = format!("u$srcache:{}", &claims.sub);
+    let mut redis_conn = state.redis.get().await?;
+    if redis_conn.exists(&cache_key).await? {
+        Ok(true)
+    } else {
+        let res: Option<User> = state.db.database("aspint")
+            .collection::<User>("service_users")
+            .find_one(doc! {"username": &claims.sub})
+            .await?;
+        if res.is_some() {
+            let _: () = redis_conn.set(&cache_key, &claims.sub).await?;
+            let _: () = redis_conn.expire(&cache_key, claims.exp as i64 -  Utc::now().timestamp()).await?;
+        }
+        Ok(res.is_some())
+    }
 }
 
 pub fn generate_jwt(user: &User) -> Result<String, anyhow::Error> {
