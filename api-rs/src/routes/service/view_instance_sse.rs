@@ -48,6 +48,7 @@ fn internal_stream(db: Database) -> impl Stream<Item = Result<Event, anyhow::Err
             .await?
             .collect()
             .await?;
+        // let parsed_applications: Vec<ABApplicationView> = init_applications.iter().map(|e| serde_json::from_str(&serde_json::to_string(e).unwrap()).unwrap()).collect();
         let event = Event::default()
             .event("initApplications")
             .json_data(json!({"data": init_applications}))?;

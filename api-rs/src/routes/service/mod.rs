@@ -33,11 +33,11 @@ pub fn service_routes(state: &AppState) -> Router<Arc<AppState>> {
         .route("/viewInstanceSse", get(view_instance_sse::view_instances_sse))
         .route("/verifyAuth", get(auth::verify_auth))
         .route_layer(middleware::from_fn_with_state(state.clone(), service_auth_middleware));
-    
+
     let unauthenticated_routes = Router::new()
         .route("/authenticateUser", post(auth::authenticate))
         .route("/registerUser", post(auth::auth_register));
-    
+
     Router::new()
         .nest("", authenticated_routes)
         .nest("", unauthenticated_routes)

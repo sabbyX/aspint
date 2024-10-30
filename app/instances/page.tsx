@@ -15,14 +15,20 @@ export default function InstancePage() {
     const [isLoaded, setLoadState] = useState(false);
 
     useEffect(() => {
-        (async () => {
-            function sleep(ms: number) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
-            await sleep(10000)
-            setLoadState(true)
-        })()
-    }, [isLoaded]);
+        setLoadState(true);
+        const sse = new EventSource("/api/viewInstance", {withCredentials: true});
+        sse.onerror = (e) => {
+            alert(JSON.stringify(e));
+            sse.close();
+        }
+        // sse.onmessage = (e) => { alert(JSON.stringify(e)) }
+
+        sse.addEventListener("initApplications", (e) => { alert(JSON.stringify(e.data)) })
+        sse.addEventListener("initABServers", (e) => { alert(JSON.stringify(e.data)) })
+
+
+        return () => { sse.close() }
+    }, []);
 
     useEffect(() => {
         setIsClient(true)
