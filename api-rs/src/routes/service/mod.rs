@@ -11,20 +11,19 @@ use crate::utils::authentication::{decode_jwt, verify_jwt};
 pub mod view_instance_sse;
 mod auth;
 
-async fn service_auth_middleware(State(state): State<AppState>, req: Request, next: Next) -> Result<Response, StatusCode> {
-    let auth_header = req.headers().get(http::header::AUTHORIZATION)
-        .and_then(|header| header.to_str().ok());
-    if let Some(auth_header) = auth_header {
-        let jwt_pad = "Bearer ";
-        if auth_header.starts_with(jwt_pad) {
-            let owned_auth = String::from(auth_header.trim_start_matches(jwt_pad));
-            if let Ok(claims) = decode_jwt(&owned_auth) {
-                if verify_jwt(&state, &claims, &owned_auth).await.map_err(|_| StatusCode::UNAUTHORIZED)? {
-                    Ok(next.run(req).await)
-                } else { Err(StatusCode::UNAUTHORIZED) }
-            } else { Err(StatusCode::UNAUTHORIZED) }
-        } else { Err(StatusCode::UNAUTHORIZED) }
-    } else { Err(StatusCode::UNAUTHORIZED) }
+async fn service_auth_middleware(State(state): State<AppState>, mut req: Request, next: Next) -> Result<Response, StatusCode> {
+    let token = req.headers().get(http::header::AUTHORIZATION)
+        .and_then(|header| header.to_str().ok())
+        .and_then(|header| {
+            header.starts_with("Bearer ").then(|| String::from(header.trim_start_matches("Bearer ").trim()))
+        }).ok_or(StatusCode::UNAUTHORIZED)?;
+    
+    let claims = decode_jwt(&token).map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let user = verify_jwt(&state, &claims, &token).await.map_err(|_| StatusCode::UNAUTHORIZED)?
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+    
+    req.extensions_mut().insert(Arc::new(user));
+    Ok(next.run(req).await)
 }
 
 pub fn service_routes(state: &AppState) -> Router<Arc<AppState>> {
