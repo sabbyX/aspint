@@ -18,11 +18,10 @@ async fn service_auth_middleware(State(state): State<AppState>, req: Request, ne
         let jwt_pad = "Bearer ";
         if auth_header.starts_with(jwt_pad) {
             let owned_auth = String::from(auth_header.trim_start_matches(jwt_pad));
-            let claims = decode_jwt(owned_auth);
-            if claims.is_err() {
-                Err(StatusCode::UNAUTHORIZED)
-            } else if verify_jwt(&state, &claims.unwrap()).await.map_err(|_| StatusCode::UNAUTHORIZED)? {
-                Ok(next.run(req).await)
+            if let Ok(claims) = decode_jwt(owned_auth) {
+                if verify_jwt(&state, &claims).await.map_err(|_| StatusCode::UNAUTHORIZED)? {
+                    Ok(next.run(req).await)
+                } else { Err(StatusCode::UNAUTHORIZED) }
             } else { Err(StatusCode::UNAUTHORIZED) }
         } else { Err(StatusCode::UNAUTHORIZED) }
     } else { Err(StatusCode::UNAUTHORIZED) }
