@@ -31,3 +31,17 @@ export function getCountryFromISOCode(c: string) {
             return "unknown"
     }
 }
+
+export function getCenterFromCenterCode(c: String) {
+    const center = c.slice(2,5);
+    switch (center) {
+        case "LON":
+            return "London"
+        case "MNC":
+            return "Manchester"
+        case "EDI":
+            return "Edinburgh"
+        default:
+            return "Unknown"
+    }
+}

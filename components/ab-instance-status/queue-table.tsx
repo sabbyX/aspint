@@ -36,51 +36,15 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-
-const data: ABQueueTable[] = [
-    {
-        id: "m5gr84i9",
-        status: "success",
-        email: "ken99@yahoo.com",
-        issuer: "Belgium",
-        name: "Stephen",
-    },
-    {
-        id: "3u1reuv4",
-        status: "success",
-        email: "Abe45@gmail.com",
-        issuer: "Germany",
-        name: "Alice",
-    },
-    {
-        id: "derv1ws0",
-        status: "processing",
-        email: "Monserrat44@gmail.com",
-        issuer:"Belgium",
-        name: "Brown",
-    },
-    {
-        id: "5kma53ae",
-        status: "success",
-        email: "Silas22@gmail.com",
-        issuer: "France",
-        name: "Cindi",
-    },
-    {
-        id: "bhqecj4p",
-        status: "failed",
-        email: "carmella@hotmail.com",
-        issuer: "Switzerland",
-        name: "Ma",
-    },
-]
+import {getCenterFromCenterCode, getCountryFromISOCode} from "@/components/shared/utils";
 
 export type ABQueueTable = {
     id: string
-    status: "pending" | "processing" | "success" | "failed"
+    status: string,
     email: string
-    issuer: "France" | "Belgium" | "Switzerland" | "Germany"
+    issuer: string,
     name: string,
+    center: string,
 }
 
 export const columns: ColumnDef<ABQueueTable>[] = [
@@ -132,7 +96,12 @@ export const columns: ColumnDef<ABQueueTable>[] = [
               </Button>
           )
         },
-        cell: ({ row }) => <div>{row.getValue("issuer")}</div>,
+        cell: ({ row }) => <div>{getCountryFromISOCode(row.getValue("issuer"))}</div>,
+    },
+    {
+        accessorKey: "center",
+        header: "Center",
+        cell: ({ row }) => <div>{getCenterFromCenterCode(row.getValue("center"))}</div>,
     },
     {
         accessorKey: "email",
@@ -175,8 +144,10 @@ export const columns: ColumnDef<ABQueueTable>[] = [
         },
     },
 ]
-
-export function QueueTable() {
+export interface IQueueTable {
+    data: ABQueueTable[]
+}
+export function QueueTable({data}: IQueueTable) {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
         []

@@ -20,7 +20,8 @@ const nextConfig = {
                 permanent: true,
             },
         ]
-    }
+    },
+    reactStrictMode: false,
 };
 
 export default nextConfig;

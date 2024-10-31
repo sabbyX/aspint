@@ -3,7 +3,6 @@ use chrono::{TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use mongodb::bson::doc;
-use mongodb::Client;
 use muddy::muddy;
 use redis::AsyncCommands;
 use crate::model::user::User;
@@ -18,7 +17,7 @@ pub struct Claims {
     exp: usize,
 }
 
-pub fn decode_jwt(token: &String) -> Result<Claims, anyhow::Error> {
+pub fn decode_jwt(token: &str) -> Result<Claims, anyhow::Error> {
     let token = decode::<Claims>(token, &DecodingKey::from_secret(SECRET_KEY.as_ref()), &Validation::default())?;
     Ok(token.claims)
 }

@@ -7,7 +7,7 @@ use axum::response::sse::Event;
 use tokio_stream::StreamExt as _;
 use futures::stream::{Stream};
 use indexmap::IndexSet;
-use mongodb::bson::{bson, doc, Document};
+use mongodb::bson::{doc, Document};
 use mongodb::change_stream::event::OperationType;
 use mongodb::Database;
 use mongodb::options::{FullDocumentBeforeChangeType, FullDocumentType};
@@ -37,11 +37,12 @@ fn internal_stream(db: Database) -> impl Stream<Item = Result<Event, anyhow::Err
                 doc! {
                     "$project": {
                         "_id": 0,
-                        "formid": 1,
+                        "id": "$formid",
                         "name": 1,
                         "email": 1,
                         "issuer": 1,
                         "country": 1,
+                        "center": 1,
                         "status": "$status_logs.latestStatus.message",
                     }
                 },
@@ -52,7 +53,7 @@ fn internal_stream(db: Database) -> impl Stream<Item = Result<Event, anyhow::Err
         // let parsed_applications: Vec<ABApplicationView> = init_applications.iter().map(|e| serde_json::from_str(&serde_json::to_string(e).unwrap()).unwrap()).collect();
         let event = Event::default()
             .event("initApplications")
-            .json_data(json!({"data": init_applications}))?;
+            .json_data(json!(init_applications))?;
         yield Ok(event);
         
         let init_abservers: Vec<ABServer> = db.collection::<ABServer>("autobook_servers").find(doc! {})
@@ -62,7 +63,7 @@ fn internal_stream(db: Database) -> impl Stream<Item = Result<Event, anyhow::Err
             .await?;
         let event = Event::default()
             .event("initABServers")
-            .json_data(json!({"data": init_abservers}))?;
+            .json_data(json!(init_abservers))?;
         yield Ok(event);
 
         let mut db_change_stream = db.watch()
@@ -82,18 +83,16 @@ fn internal_stream(db: Database) -> impl Stream<Item = Result<Event, anyhow::Err
                                     let doc: ABApplication = serde_json::from_str(&serde_json::to_string(&event.full_document.unwrap())?)?;
                                     let status_log: Option<ABHealth> = db.collection::<ABHealth>("autobook_logs")
                                         .find_one(doc! {"formid": doc.formid})
-                                        .await.unwrap();
-                                    let status = if let Some(status_log) = status_log {
-                                        json!(status_log.logs.last())
-                                    } else { json!({}) };
+                                        .await?;
+                                    let latest_status = status_log.and_then(|doc| doc.logs.last().map(|status| status.message.clone()));
                                     Event::default()
                                         .event("newABApplication")
-                                        .json_data(json!({"formid": doc.formid, "name": doc.name, "email": doc.email, "status": status, "issuer": doc.issuer, "center": doc.center}))?
+                                        .json_data(json!({"id": doc.formid, "name": doc.name, "email": doc.email, "status": latest_status, "issuer": doc.issuer, "center": doc.center}))?
                                 }
                                 OperationType::Delete => {
                                     Event::default()
                                         .event("deleteABApplication")
-                                        .json_data(json!({"formid": event.full_document_before_change.unwrap().get("formid").unwrap_or(&bson!(0)).as_i32().unwrap_or(0)}))?
+                                        .json_data(json!({"formid": event.full_document_before_change.and_then(|doc| doc.get("formid").map(|field| field.as_i32()))}))?
                                 },
                                 _ => Event::default().event("IGNORE_EVENT"), // todo: better?
                             }
@@ -104,7 +103,7 @@ fn internal_stream(db: Database) -> impl Stream<Item = Result<Event, anyhow::Err
                                     let doc: ABHealth = serde_json::from_str(&serde_json::to_string(&event.full_document.unwrap())?)?;
                                     Event::default()
                                     .event("newABLog")
-                                    .json_data(json!({"formid": doc.formid, "last_status": doc.logs.last()}))?
+                                    .json_data(json!({"formid": doc.formid, "updated_status": doc.logs.last().map(|status| status.message.clone())}))?
                                 },
                                 _ => Event::default().event("IGNORE_EVENT"),
                             }
