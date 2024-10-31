@@ -18,13 +18,13 @@ pub struct Claims {
     exp: usize,
 }
 
-pub fn decode_jwt(token: String) -> Result<Claims, anyhow::Error> {
-    let token = decode::<Claims>(&token, &DecodingKey::from_secret(SECRET_KEY.as_ref()), &Validation::default())?;
+pub fn decode_jwt(token: &String) -> Result<Claims, anyhow::Error> {
+    let token = decode::<Claims>(token, &DecodingKey::from_secret(SECRET_KEY.as_ref()), &Validation::default())?;
     Ok(token.claims)
 }
 
-pub async fn verify_jwt(state: &AppState, claims: &Claims) -> Result<bool, anyhow::Error> {
-    let cache_key = format!("u$srcache:{}", &claims.sub);
+pub async fn verify_jwt(state: &AppState, claims: &Claims, token: &String) -> Result<bool, anyhow::Error> {
+    let cache_key = format!("u$srcache:{}:{}", &claims.sub, &token);
     let mut redis_conn = state.redis.get().await?;
     if redis_conn.exists(&cache_key).await? {
         Ok(true)
