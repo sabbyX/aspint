@@ -33,6 +33,7 @@ fn internal_stream(db: Database) -> impl Stream<Item = Result<Event, anyhow::Err
                         "as": "status_logs",
                     }
                 },
+                doc! { "$unwind": "$status_logs" },
                 doc! {
                     "$project": {
                         "_id": 0,
@@ -41,7 +42,7 @@ fn internal_stream(db: Database) -> impl Stream<Item = Result<Event, anyhow::Err
                         "email": 1,
                         "issuer": 1,
                         "country": 1,
-                        "status": { "$arrayElemAt": ["$status_logs.latestStatus", -1] },
+                        "status": "$status_logs.latestStatus.message",
                     }
                 },
             ])
