@@ -370,7 +370,7 @@ async function bg_task_tls_adv() {
         }
     )
     var data = resp.data;
-    console.log(WORKER_ID, "Recieved listener data");
+    console.log(WORKER_ID, "Received listener data");
     console.log("Worker Type: ", WORKER_TYPE);
     console.log("Listeners: ", SUPPORTED_LISTENERS);
     console.log("Proxy: ", PROXY);

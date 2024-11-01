@@ -16,11 +16,12 @@ const nextConfig = {
             // Basic redirect
             {
                 source: '/',
-                destination: '/autobook',
+                destination: '/status',
                 permanent: true,
             },
         ]
-    }
+    },
+    reactStrictMode: false,
 };
 
 export default nextConfig;
