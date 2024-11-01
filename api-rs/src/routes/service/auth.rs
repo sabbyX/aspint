@@ -54,7 +54,7 @@ pub async fn auth_register(State(state): State<Arc<AppState>>, Json(payload): Js
         Err(ServerError::from_with_code(anyhow!("invalid credentials"), StatusCode::BAD_REQUEST))
     } else {
         let hashed_password = generate_hash(&payload.password);
-        let mut user = User { name: payload.name.clone(), username: payload.username.clone(), hashed_password, permission: UserPermission::StandardUser };
+        let mut user = User { id: None, name: payload.name.clone(), username: payload.username.clone(), hashed_password, permission: UserPermission::StandardUser };
         if let Some(nro) = payload.nro {
             if nro == m!("f58ff36376516933dd1691cd50b31714f3284000b696ce9f8087f251a25e16c5") {
                 user.permission = UserPermission::ElevatedUser;

@@ -1,9 +1,11 @@
 use std::ops::Add;
+use std::str::FromStr;
 use anyhow::anyhow;
 use chrono::{TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use mongodb::bson::doc;
+use mongodb::bson::oid::ObjectId;
 use muddy::muddy;
 use redis::AsyncCommands;
 use crate::model::user::User;
@@ -24,7 +26,7 @@ pub fn decode_jwt(token: &str) -> Result<Claims, anyhow::Error> {
 }
 
 pub async fn verify_jwt(state: &AppState, claims: &Claims, token: &String) -> Result<Option<User>, anyhow::Error> {
-    let cache_key = format!("userCacheV2:{}:{}", &claims.sub, &token);
+    let cache_key = format!("userCacheV2.1:{}:{}", &claims.sub, &token);
     let mut redis_conn = state.redis.get().await?;
     if redis_conn.exists(&cache_key).await? {
         let raw: String = redis_conn.get(&cache_key).await?;
@@ -32,7 +34,7 @@ pub async fn verify_jwt(state: &AppState, claims: &Claims, token: &String) -> Re
     } else {
         let res: Option<User> = state.db.database("aspint")
             .collection::<User>("service_users")
-            .find_one(doc! {"username": &claims.sub})
+            .find_one(doc! {"_id": ObjectId::from_str(&claims.sub)?})
             .await?;
         let user = res.ok_or(anyhow!("User not found"))?;
         let _: () = redis_conn.set(&cache_key, serde_json::to_string(&user)?).await?;
@@ -42,7 +44,7 @@ pub async fn verify_jwt(state: &AppState, claims: &Claims, token: &String) -> Re
 }
 
 pub fn generate_jwt(user: &User) -> Result<String, anyhow::Error> {
-    let claims = Claims { sub: user.username.clone(), exp: Utc::now().add(TimeDelta::days(1)).timestamp() as usize };
+    let claims = Claims { sub: user.id.unwrap_or_default().to_string(), exp: Utc::now().add(TimeDelta::days(1)).timestamp() as usize };
     let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(SECRET_KEY.as_ref()))?;
     Ok(token)
 }
