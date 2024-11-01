@@ -10,6 +10,7 @@ use crate::utils::authentication::{decode_jwt, verify_jwt};
 
 pub mod view_instance_sse;
 mod auth;
+mod listener_settings;
 
 async fn service_auth_middleware(State(state): State<AppState>, mut req: Request, next: Next) -> Result<Response, StatusCode> {
     let token = req.headers().get(http::header::AUTHORIZATION)
@@ -22,7 +23,7 @@ async fn service_auth_middleware(State(state): State<AppState>, mut req: Request
     let user = verify_jwt(&state, &claims, &token).await.map_err(|_| StatusCode::UNAUTHORIZED)?
         .ok_or(StatusCode::UNAUTHORIZED)?;
     
-    req.extensions_mut().insert(Arc::new(user));
+    req.extensions_mut().insert(user);
     Ok(next.run(req).await)
 }
 
@@ -30,6 +31,8 @@ pub fn service_routes(state: &AppState) -> Router<Arc<AppState>> {
     let authenticated_routes = Router::new()
         .route("/viewInstanceSse", get(view_instance_sse::view_instances_sse))
         .route("/verifyAuth", get(auth::verify_auth))
+        .route("/getAllListenersData", get(listener_settings::get_listeners))
+        .route("/setListeners", post(listener_settings::set_listeners))
         .route_layer(middleware::from_fn_with_state(state.clone(), service_auth_middleware));
 
     let unauthenticated_routes = Router::new()

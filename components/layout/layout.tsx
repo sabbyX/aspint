@@ -9,7 +9,7 @@ import {ReactNode} from "react";
 import {usePathname} from "next/navigation";
 
 
-const NavBarAllowedRoutes = ["/autobook", "/", "/status", "/instances"]
+const NavBarAllowedRoutes = ["/autobook", "/", "/status", "/instances", "/settings", "/settings/listenerSettings"]
 
 
 export function Layout({children}: Readonly<{

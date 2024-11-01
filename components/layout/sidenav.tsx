@@ -33,9 +33,10 @@ const items = [
         href: ["/internal-logs"],
     },
     {
-        title: "Backend Control",
+        title: "Settings",
         icon: Settings2Icon,
-        href: ["/backend-control"],
+        href: ["/settings"],
+        dialog: true
     },
 ]
 
@@ -55,7 +56,9 @@ export function SidebarNav({ className, setOpen, ...props }: SidebarNavProps) {
                     key={item.href[0]}
                     href={item.href[0]}
                     onClick={() => {
+                        // for mobile sidebar
                         if (setOpen) setOpen(false);
+                        if (item.dialog) {}
                     }}
                     className={cn(
                         buttonVariants({ variant: "ghost" }),

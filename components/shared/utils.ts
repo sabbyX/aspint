@@ -45,3 +45,20 @@ export function getCenterFromCenterCode(c: String) {
             return "Unknown"
     }
 }
+
+export function abbCenter(c: String) {
+    switch (c.toLowerCase()) {
+        case "london":
+            return "LON"
+        case "manchester":
+            return "MNC"
+        case "edinburgh":
+            return "EDI"
+        default:
+            return "Unknown"
+    }
+}
+
+export function getCenterCode(issuer: string, center: string) {
+    return `gb${center.toUpperCase()}2${issuer}`
+}
